@@ -186,3 +186,10 @@ dialog small { color: var(--muted); }
   .conteudo { padding: 8px 16px 40px; }
   .grade, .duas { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* comparar: mês a mês no intervalo */
+.coluna .pilar.cheio { background: var(--chart); }
+.coluna .var { font-size: 11px; white-space: nowrap; font-variant-numeric: tabular-nums; min-height: 1.5em; }
+.cmp-cat td small { display: block; font-size: 11px; }
+.cmp-cat th:first-child, .cmp-cat td:first-child { position: sticky; left: 0; background: var(--card); }
+.cmp-cat tfoot td { font-weight: 600; border-top: 1px solid var(--line); }

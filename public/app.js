@@ -31,7 +31,7 @@ function status(msg, erro = false) {
 const tentar = fn => async (...a) => { try { await fn(...a); } catch (err) { status(err.message, true); } };
 
 // ---------- navegação e tema ----------
-const VIEWS = { painel: () => carregar(), gastos: () => carregarGastos(), importar: () => carregarImportacoes(), cartoes: () => carregarCartoes(),
+const VIEWS = { painel: () => carregar(), comparar: () => carregarComparar(), gastos: () => carregarGastos(), importar: () => carregarImportacoes(), cartoes: () => carregarCartoes(),
   config: () => carregarRegras() };
 function rota() {
   const v = VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : "painel";
@@ -241,6 +241,72 @@ $("dlgClassificar").addEventListener("close", tentar(async () => {
   status("Regra salva.");
   await carregar();
 }));
+
+// ---------- comparar períodos ----------
+const proximoMes = m => new Date(Date.UTC(+m.slice(0, 4), +m.slice(5, 7), 1)).toISOString().slice(0, 7);
+const mesesEntre = (de, ate) => { const l = []; for (let m = de; m <= ate; m = proximoMes(m)) l.push(m); return l; };
+const variacao = (b, a) => {
+  if (!a) return b ? `<span class="fraco">novo</span>` : "";
+  const p = (b - a) / a * 100;
+  return Math.abs(p) < 0.5 ? `<span class="fraco">= 0%</span>` : `<span class="delta ${p > 0 ? "sobe" : "desce"}">${p > 0 ? "▲" : "▼"} ${Math.abs(p).toFixed(0)}%</span>`;
+};
+
+async function carregarComparar() {
+  todas = await api("GET", "/api/transacoes");
+  const meses = [...new Set(todas.map(t => t.mes))].sort();
+  $("cmpVazio").hidden = meses.length > 0;
+  $("cmp").hidden = meses.length === 0;
+  if (!meses.length) return;
+  const ultimo = meses.at(-1), padrao = { cmpDe: meses.at(-2) ?? ultimo, cmpAte: ultimo };
+  for (const id of Object.keys(padrao)) {
+    const atual = $(id).value;
+    $(id).innerHTML = mesesEntre(meses[0], ultimo).map(m => `<option value="${m}">${nomeMes(m)}</option>`).join("");
+    $(id).value = atual && atual >= meses[0] && atual <= ultimo ? atual : padrao[id];
+  }
+  renderComparar();
+}
+
+function renderComparar() {
+  // "até" antes do "de" vira o mesmo mês, para o intervalo nunca ficar vazio
+  if ($("cmpAte").value < $("cmpDe").value) $("cmpAte").value = $("cmpDe").value;
+  const de = $("cmpDe").value, ate = $("cmpAte").value, span = mesesEntre(de, ate);
+  const gastos = todas.filter(ehGasto);
+  const porMes = new Map(quebrar(gastos, t => t.mes).map(([m, e]) => [m, e.total]));
+  const valores = span.map(m => porMes.get(m) ?? 0);
+  const total = valores.reduce((s, v) => s + v, 0);
+  const maior = span[valores.indexOf(Math.max(...valores))], menor = span[valores.indexOf(Math.min(...valores))];
+
+  $("cmpKpis").innerHTML = `
+    <div class="kpi destaque"><span>No intervalo</span><strong>${brl(total)}</strong><small>${span.length} ${span.length > 1 ? "meses" : "mês"} · ${mesCurto(de)} a ${mesCurto(ate)}</small></div>
+    <div class="kpi"><span>Média por mês</span><strong>${brl(total / span.length)}</strong><small>&nbsp;</small></div>
+    <div class="kpi"><span>Mês que mais gastei</span><strong>${brl(porMes.get(maior) ?? 0)}</strong><small>${nomeMes(maior)}</small></div>
+    <div class="kpi"><span>Mês que menos gastei</span><strong>${brl(porMes.get(menor) ?? 0)}</strong><small>${nomeMes(menor)}</small></div>`;
+
+  // a variação do primeiro mês usa o mês anterior ao intervalo, quando houver
+  const topo = Math.max(...valores, 1);
+  $("cmpMeses").innerHTML = span.map((m, i) => `
+    <div class="coluna" title="${nomeMes(m)}: ${brl(valores[i])}">
+      <span class="valor">${brl(valores[i]).replace(/,\d\d$/, "")}</span>
+      <span class="pilar cheio" style="height:${(valores[i] / topo * 100).toFixed(1)}%"></span>
+      <span class="rotulo">${mesCurto(m)}</span><span class="var">${variacao(valores[i], porMes.get(mesAnterior(m)) ?? 0)}</span>
+    </div>`).join("");
+
+  // categoria x mês: cada célula com a variação contra o mês anterior da mesma categoria
+  const cel = new Map();
+  for (const t of gastos.filter(t => t.mes >= mesAnterior(de) && t.mes <= ate))
+    cel.set(`${t.categoria}|${t.mes}`, (cel.get(`${t.categoria}|${t.mes}`) ?? 0) - t.valor);
+  const v = (c, m) => cel.get(`${c}|${m}`) ?? 0;
+  const cats = [...new Set(gastos.filter(t => span.includes(t.mes)).map(t => t.categoria))]
+    .map(c => [c, span.reduce((s, m) => s + v(c, m), 0)]).sort((x, y) => y[1] - x[1]);
+  const celula = (val, ant) => `<td class="num mono">${val ? brl(val) : `<span class="fraco">—</span>`}<small>${variacao(val, ant)}</small></td>`;
+  $("cmpBase").textContent = "Cada mês contra o anterior, categorias com mais gasto no intervalo primeiro";
+  $("cmpCab").innerHTML = `<tr><th>Categoria</th>${span.map(m => `<th class="num">${mesCurto(m)}</th>`).join("")}<th class="num">Total</th></tr>`;
+  $("cmpCategorias").innerHTML = cats.map(([c, tot]) => `
+    <tr><td>${esc(c)}</td>${span.map(m => celula(v(c, m), v(c, mesAnterior(m)))).join("")}<td class="num mono">${brl(tot)}</td></tr>`).join("")
+    || `<tr><td colspan="${span.length + 2}" class="fraco centro">Nenhum gasto nesses meses.</td></tr>`;
+  $("cmpTotal").innerHTML = cats.length ? `<tr><td>Total</td>${span.map((m, i) => celula(valores[i], porMes.get(mesAnterior(m)) ?? 0)).join("")}<td class="num mono">${brl(total)}</td></tr>` : "";
+}
+for (const id of ["cmpDe", "cmpAte"]) $(id).addEventListener("change", renderComparar);
 
 // ---------- configurações: regras de categoria ----------
 let regras = [];

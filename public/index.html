@@ -12,6 +12,7 @@
   <a class="marca" href="#painel"><img src="logo.png" width="28" height="27" alt="">Chosen Finance</a>
   <nav class="menu" aria-label="Seções">
     <a href="#painel"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4zm10 7h6V11h-6zM4 20h6v-4H4zm10-11h6V4h-6z"/></svg>Visão geral</a>
+    <a href="#comparar"><svg viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3"/></svg>Comparar</a>
     <a href="#gastos"><svg viewBox="0 0 24 24"><path d="M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2zM9 9h6M9 13h6"/></svg>Gastos manuais</a>
     <a href="#importar"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>Importar faturas</a>
     <a href="#cartoes"><svg viewBox="0 0 24 24"><path d="M3 6h18v12H3zM3 10h18M7 15h3"/></svg>Cartões</a>
@@ -71,6 +72,33 @@
               <th class="num"><button class="ordenar" data-ordem="valor">Valor</button></th>
             </tr></thead>
             <tbody id="linhas"></tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section data-view="comparar" hidden>
+    <header class="cabecalho">
+      <div><h1>Comparar</h1><p class="sub">Mês a mês no intervalo: gastei mais ou menos, e em quê.</p></div>
+      <div class="filtros">
+        <select id="cmpDe" aria-label="De"></select> a <select id="cmpAte" aria-label="Até"></select>
+      </div>
+    </header>
+    <div id="cmpVazio" class="vazio card" hidden><h2>Nenhum lançamento ainda</h2><p>Importe faturas para comparar os meses.</p></div>
+    <div id="cmp" hidden>
+      <div class="kpis" id="cmpKpis"></div>
+      <article class="card">
+        <div class="card-topo"><div><h2>Mês a mês</h2><p class="sub">Variação de cada mês contra o anterior</p></div></div>
+        <div id="cmpMeses" class="colunas"></div>
+      </article>
+      <article class="card">
+        <div class="card-topo"><div><h2>Por categoria</h2><p class="sub" id="cmpBase"></p></div></div>
+        <div class="tabela-wrap">
+          <table class="cmp-cat">
+            <thead id="cmpCab"></thead>
+            <tbody id="cmpCategorias"></tbody>
+            <tfoot id="cmpTotal"></tfoot>
           </table>
         </div>
       </article>
