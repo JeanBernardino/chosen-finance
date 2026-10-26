@@ -35,6 +35,7 @@ export async function migrar(db) {
       cor    text not null default '#008F63',
       ativo  boolean not null default true);
     alter table transacao add column if not exists cartao_id int references cartao;
+    alter table transacao add column if not exists vencimento date;  -- vencimento da fatura do cartão
     create table if not exists gasto_manual (
       id        serial primary key,
       data      date not null,
@@ -58,17 +59,22 @@ export async function migrar(db) {
 /** Grava as transações ignorando as já importadas; devolve quantas eram novas. */
 export async function salvar(db, transacoes, cartaoId = null) {
   if (!transacoes.length) return 0;
-  const cols = ["id", "origem", "data", "descricao", "valor", "categoria_banco", "parcela_atual", "parcela_total", "arquivo"];
+  const cols = ["id", "origem", "data", "descricao", "valor", "categoria_banco", "parcela_atual", "parcela_total", "arquivo", "vencimento"];
   const { rowCount } = await db.query(
-    `insert into transacao (${cols}, cartao_id) select *, $10::int from unnest($1::text[], $2::text[], $3::date[], $4::text[], $5::numeric[],
-       $6::text[], $7::int[], $8::int[], $9::text[]) on conflict (id) do nothing`,
+    `insert into transacao (${cols}, cartao_id) select *, $11::int from unnest($1::text[], $2::text[], $3::date[], $4::text[], $5::numeric[],
+       $6::text[], $7::int[], $8::int[], $9::text[], $10::date[]) on conflict (id) do nothing`,
     [...cols.map(c => transacoes.map(t => t[c])), cartaoId]);
   return rowCount;
 }
 
-/** Importadas, com o nome do cartão como origem. Gasto manual tem visão própria e não entra aqui. */
+/**
+ * Importadas, com o nome do cartão como origem. Gasto manual tem visão própria e não entra aqui.
+ * `mes` é o mês de pagamento: a fatura do cartão conta inteira no mês do vencimento,
+ * mesmo com compras de meses anteriores.
+ */
 export const transacoes = async db => (await db.query(`
-  select t.id, coalesce(c.nome, t.origem) as origem, t.data, t.descricao, t.valor, t.categoria_banco,
+  select t.id, coalesce(c.nome, t.origem) as origem, t.data, to_char(coalesce(t.vencimento, t.data), 'YYYY-MM') as mes,
+         t.descricao, t.valor, t.categoria_banco,
          t.parcela_atual, t.parcela_total, t.cartao_id, c.cor
     from transacao t left join cartao c on c.id = t.cartao_id
    order by t.data desc, t.id`)).rows;

@@ -17,10 +17,10 @@ export async function ler(nome, buf) {
 
 const iso = (a, m, d) => `${a}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
-function transacao(origem, id, data, descricao, valor, categoriaBanco, parcela, arquivo) {
+function transacao(origem, id, data, descricao, valor, categoriaBanco, parcela, arquivo, vencimento = null) {
   return {
     id: `${origem}:${id}`, origem, data, descricao, valor, categoria_banco: categoriaBanco,
-    parcela_atual: parcela ? Number(parcela[1]) : null, parcela_total: parcela ? Number(parcela[2]) : null, arquivo,
+    parcela_atual: parcela ? Number(parcela[1]) : null, parcela_total: parcela ? Number(parcela[2]) : null, arquivo, vencimento,
   };
 }
 
@@ -30,14 +30,19 @@ export function lerOfx(buf, arquivo) {
   // OFX 1.x é SGML (tags sem fechamento), então parser XML não serve
   const tag = (t, s = texto) => s.match(new RegExp(`<${t}>([^<\\r\\n]*)`))?.[1].trim();
   const codigo = (tag("FID") || tag("BANKID") || "").replace(/^0+/, "");
-  const origem = `${BANCOS[codigo] ?? tag("ORG") ?? "OFX"} ${texto.includes("<CREDITCARDMSGSRSV1>") ? "cartão" : "conta"}`;
+  const cartao = texto.includes("<CREDITCARDMSGSRSV1>");
+  const origem = `${BANCOS[codigo] ?? tag("ORG") ?? "OFX"} ${cartao ? "cartão" : "conta"}`;
+  // OFX não traz o vencimento; no cartão, o fim do extrato é o fechamento
+  // shortcut: vencimento = fechamento + 7 dias (regra do Nubank); se outro banco divergir, guardar o dia de vencimento no cartão
+  const fim = cartao && tag("DTEND");
+  const vencimento = fim ? new Date(Date.UTC(+fim.slice(0, 4), +fim.slice(4, 6) - 1, +fim.slice(6, 8) + 7)).toISOString().slice(0, 10) : null;
   return [...texto.matchAll(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/g)].map(([, bloco]) => {
     const descricao = tag("MEMO", bloco) || tag("NAME", bloco) || "";
     const d = tag("DTPOSTED", bloco);
     // Nubank repete o FITID da compra no IOF dela: o id precisa do valor e da descrição
     const id = `${tag("FITID", bloco)}:${crypto.createHash("sha1").update(tag("TRNAMT", bloco) + descricao).digest("hex").slice(0, 8)}`;
     return transacao(origem, id, iso(d.slice(0, 4), d.slice(4, 6), d.slice(6, 8)),
-      descricao.replace(PARCELA_OFX, ""), Number(tag("TRNAMT", bloco).replace(",", ".")), null, descricao.match(PARCELA_OFX), arquivo);
+      descricao.replace(PARCELA_OFX, ""), Number(tag("TRNAMT", bloco).replace(",", ".")), null, descricao.match(PARCELA_OFX), arquivo, vencimento);
   });
 }
 
@@ -71,6 +76,8 @@ export async function lerFaturaItau(buf, arquivo) {
   if (!emissao) throw new Error("não parece uma fatura do cartão Itaú (data de emissão não encontrada)");
   const [, diaF, mesF, anoF] = emissao.map(Number);
   const fechamento = iso(anoF, mesF, diaF);
+  const venc = linhas.join("\n").match(/Vencimento: (\d{2})\/(\d{2})\/(\d{4})/);
+  const vencimento = venc ? iso(venc[3], venc[2], venc[1]) : null;
 
   const transacoes = [], repetidas = new Map();
   let dentro = false;
@@ -92,7 +99,7 @@ export async function lerFaturaItau(buf, arquivo) {
     repetidas.set(chave, (repetidas.get(chave) ?? 0) + 1);
     const id = crypto.createHash("sha1").update(chave + repetidas.get(chave)).digest("hex").slice(0, 16);
     transacoes.push(transacao("Itaú cartão", id, data, descricao.trim(),
-      -Number(valor.replace(/\./g, "").replace(",", ".")), categoria, parcela, arquivo));
+      -Number(valor.replace(/\./g, "").replace(",", ".")), categoria, parcela, arquivo, vencimento));
   });
   return transacoes;
 }

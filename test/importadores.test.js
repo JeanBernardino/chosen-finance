@@ -56,3 +56,9 @@ test("fatura Itaú real bate com o total impresso", { skip: !ITAU && "defina FAT
   assert.equal(total.toFixed(2), Number(process.env.TOTAL_ITAU).toFixed(2));
   assert.ok(t.every(x => /^\d{4}-\d{2}-\d{2}$/.test(x.data)));
 });
+
+test("OFX cartão: vencimento = fechamento (DTEND) + 7 dias; sem DTEND fica nulo", () => {
+  const comFim = OFX.replace("<BANKTRANLIST>", "<BANKTRANLIST><DTSTART>20260904000000[-3:BRT]<DTEND>20261004000000[-3:BRT]");
+  assert.deepEqual([...new Set(lerOfx(Buffer.from(comFim), "x.ofx").map(t => t.vencimento))], ["2026-10-11"]);
+  assert.equal(lerOfx(Buffer.from(OFX), "x.ofx")[0].vencimento, null);
+});

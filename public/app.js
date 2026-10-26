@@ -56,7 +56,7 @@ rotuloTema();
 async function carregar() {
   [todas, cartoes] = await Promise.all([api("GET", "/api/transacoes"), api("GET", "/api/cartoes")]);
   // mês atual sempre na lista e selecionado ao abrir; depois mantém a escolha do usuário
-  const meses = [...new Set([hoje().slice(0, 7), ...todas.map(t => t.data.slice(0, 7))])].sort().reverse();
+  const meses = [...new Set([hoje().slice(0, 7), ...todas.map(t => t.mes)])].sort().reverse();
   const atual = $("mes").options.length ? $("mes").value : hoje().slice(0, 7);
   $("mes").innerHTML = `<option value="">Todo o período</option>` + meses.map(m => `<option value="${m}">${nomeMes(m)}</option>`).join("");
   $("mes").value = meses.includes(atual) ? atual : "";
@@ -87,10 +87,10 @@ function render() {
   $("painel").hidden = todas.length === 0;
   const mes = $("mes").value;
   const origens = [...new Set(todas.map(t => t.origem))].sort();
-  const doMes = todas.filter(t => !mes || t.data.startsWith(mes));
+  const doMes = todas.filter(t => !mes || t.mes.startsWith(mes));
   const gastosF = doMes.filter(ehGasto);
   const total = soma(gastosF);
-  const nMeses = new Set(gastosF.map(t => t.data.slice(0, 7))).size || 1;
+  const nMeses = new Set(gastosF.map(t => t.mes)).size || 1;
   const sem = gastosF.filter(t => t.categoria === "Sem categoria");
   const titulo = origens.every(o => todas.some(t => t.origem === o && t.cartao_id)) ? "Gasto nos cartões" : "Gasto";
   const porOrigem = new Map(quebrar(gastosF, t => t.origem).map(([o, e]) => [o, e.total]));
@@ -98,7 +98,7 @@ function render() {
 
   $("kpis").innerHTML = `
     <div class="kpi destaque"><span>${titulo}</span><strong>${brl(total)}</strong>
-      ${mes ? delta(total, soma(todas.filter(t => ehGasto(t) && t.data.startsWith(anterior))), anterior) : `<small>todo o período · média ${brl(total / nMeses)}/mês</small>`}</div>
+      ${mes ? delta(total, soma(todas.filter(t => ehGasto(t) && t.mes.startsWith(anterior))), anterior) : `<small>todo o período · média ${brl(total / nMeses)}/mês</small>`}</div>
     ${origens.map(o => `<div class="kpi origem" style="--cor:${cor(o)}">
       <span class="titulo">${ponto(o)}${esc(o)}</span><strong>${brl(porOrigem.get(o) ?? 0)}</strong>
       <small>${total ? ((porOrigem.get(o) ?? 0) / total * 100).toFixed(0) : 0}% do gasto</small></div>`).join("")}
@@ -132,7 +132,7 @@ function render() {
   // por mês ignora o filtro de mês: é a evolução
   const osMes = origens.filter(o => !ocultos.mes.has(o));
   const porMes = quebrar(todas.filter(t => ehGasto(t) && !ocultos.mes.has(t.origem) && (!categoriaAtiva || t.categoria === categoriaAtiva)),
-    t => t.data.slice(0, 7)).sort((a, b) => a[0].localeCompare(b[0]));
+    t => t.mes).sort((a, b) => a[0].localeCompare(b[0]));
   const topo = Math.max(...porMes.map(([, e]) => e.total), 1);
   $("meses").classList.toggle("filtrado", !!mes);
   $("meses").innerHTML = porMes.map(([m, e]) => `
