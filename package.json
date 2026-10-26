@@ -1,0 +1,16 @@
+{
+  "name": "chosen-finance",
+  "version": "0.1.0",
+  "description": "Controle financeiro local: importa OFX (Nubank, Itaú) e a fatura PDF do Itaú, categoriza e mostra onde o dinheiro vai.",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "pdfjs-dist": "4.10.38",
+    "pg": "8.13.1"
+  }
+}

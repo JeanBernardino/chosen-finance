@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chosen Finance</title>
+<link rel="icon" href="favicon.png">
+<link rel="stylesheet" href="app.css">
+<!-- tema escolhido antes do primeiro paint, sem piscar -->
+<script>try { const t = localStorage.getItem("tema"); if (t) document.documentElement.dataset.theme = t; } catch {}</script>
+
+<aside class="lateral">
+  <a class="marca" href="#painel"><img src="logo.png" width="28" height="27" alt="">Chosen Finance</a>
+  <nav class="menu" aria-label="Seções">
+    <a href="#painel"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4zm10 7h6V11h-6zM4 20h6v-4H4zm10-11h6V4h-6z"/></svg>Visão geral</a>
+    <a href="#gastos"><svg viewBox="0 0 24 24"><path d="M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2zM9 9h6M9 13h6"/></svg>Gastos manuais</a>
+    <a href="#importar"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>Importar faturas</a>
+    <a href="#cartoes"><svg viewBox="0 0 24 24"><path d="M3 6h18v12H3zM3 10h18M7 15h3"/></svg>Cartões</a>
+    <a href="#config"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 2.9-1.2V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.1a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Configurações</a>
+  </nav>
+  <div class="rodape-menu">
+    <button class="menu-btn" id="tema" aria-label="Alternar tema"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg><span>Tema escuro</span></button>
+  </div>
+</aside>
+
+<div class="conteudo">
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+
+  <section data-view="painel">
+    <header class="cabecalho">
+      <div><h1>Visão geral</h1><p class="sub">Faturas importadas: para onde o dinheiro foi, por categoria, cartão e mês.</p></div>
+      <div class="filtros">
+        <select id="mes" aria-label="Mês"></select>
+      </div>
+    </header>
+
+    <div id="vazio" class="vazio card" hidden>
+      <h2>Nenhum lançamento ainda</h2>
+      <p>Importe uma fatura de cartão para começar.</p>
+      <a class="btn primary" href="#importar">Importar fatura</a>
+    </div>
+
+    <div id="painel" hidden>
+      <div class="kpis" id="kpis"></div>
+      <div class="grade">
+        <article class="card">
+          <div class="card-topo"><h2 id="tCategoria">Por categoria</h2><div class="legenda" id="legCategoria" data-grafico="categoria"></div></div>
+          <ol id="categorias" class="barras"></ol>
+        </article>
+        <article class="card">
+          <div class="card-topo"><h2 id="tMes">Por mês</h2><div class="legenda" id="legMes" data-grafico="mes"></div></div>
+          <div id="meses" class="colunas"></div>
+        </article>
+      </div>
+      <article class="card">
+        <div class="card-topo">
+          <div><h2>Lançamentos</h2><p class="sub" id="resumoLista"></p></div>
+          <div class="filtros-grid">
+            <input type="search" id="busca" placeholder="Buscar descrição" aria-label="Buscar descrição">
+            <select id="fOrigem" aria-label="Filtrar cartão"></select>
+            <select id="fCategoria" aria-label="Filtrar categoria"></select>
+          </div>
+        </div>
+        <div class="tabela-wrap">
+          <table>
+            <thead id="cabLinhas"><tr>
+              <th><button class="ordenar" data-ordem="data">Data</button></th>
+              <th><button class="ordenar" data-ordem="descricao">Descrição</button></th>
+              <th><button class="ordenar" data-ordem="origem">Cartão</button></th>
+              <th><button class="ordenar" data-ordem="categoria">Categoria</button></th>
+              <th><button class="ordenar" data-ordem="parcela">Parcela</button></th>
+              <th class="num"><button class="ordenar" data-ordem="valor">Valor</button></th>
+            </tr></thead>
+            <tbody id="linhas"></tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section data-view="gastos" hidden>
+    <header class="cabecalho">
+      <div><h1>Gastos manuais</h1><p class="sub">Seu controle do dia a dia, anotado na hora. Separado das faturas: não entra na visão geral.</p></div>
+      <div class="filtros">
+        <select id="mesGastos" aria-label="Mês"></select>
+        <button class="btn primary" id="novoGasto">+ Novo gasto</button>
+      </div>
+    </header>
+    <div class="kpis" id="kpisGastos"></div>
+    <article class="card">
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Pago com</th><th class="num">Valor</th><th></th></tr></thead>
+          <tbody id="linhasGastos"></tbody>
+        </table>
+      </div>
+      <p id="semGastos" class="fraco centro" hidden>Nenhum gasto neste mês.</p>
+    </article>
+  </section>
+
+  <section data-view="importar" hidden>
+    <header class="cabecalho">
+      <div><h1>Importar faturas</h1><p class="sub">OFX do Nubank (cartão ou conta), OFX do extrato Itaú ou PDF da fatura do cartão Itaú. Reimportar não duplica.</p></div>
+    </header>
+    <article class="card">
+      <form id="formImportar" class="importar">
+        <label class="campo">Cartão
+          <select id="cartaoImportar"></select>
+        </label>
+        <label class="soltar" id="soltar">
+          <input type="file" id="arquivos" accept=".ofx,.pdf" multiple>
+          <strong>Arraste os arquivos aqui</strong><span>ou clique para escolher (.ofx, .pdf)</span>
+          <span id="escolhidos" class="escolhidos"></span>
+        </label>
+        <div class="botoes"><button class="btn primary" id="btnImportar" disabled>Importar</button></div>
+      </form>
+    </article>
+    <article class="card">
+      <div class="card-topo"><h2>Histórico de importações</h2></div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Arquivo</th><th>Cartão / conta</th><th>Período</th><th class="num">Lançamentos</th><th class="num">Gasto</th><th>Importado em</th><th></th></tr></thead>
+          <tbody id="linhasImportacoes"></tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <section data-view="config" hidden>
+    <header class="cabecalho">
+      <div><h1>Configurações</h1><p class="sub">Como o app classifica e organiza os lançamentos.</p></div>
+    </header>
+    <article class="card">
+      <div class="card-topo">
+        <div><h2>Regras de categoria</h2><p class="sub">Regex na descrição. A primeira da lista que casar vence; sem regra, vale a categoria que o banco mandou.</p></div>
+        <input type="search" id="buscaRegra" placeholder="Buscar regex ou categoria" aria-label="Buscar regra">
+        <button class="btn primary" id="novaRegra">+ Nova regra</button>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th class="num">#</th><th>Regex</th><th>Categoria</th><th class="num">Classifica</th><th></th></tr></thead>
+          <tbody id="linhasRegras"></tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <section data-view="cartoes" hidden>
+    <header class="cabecalho">
+      <div><h1>Cartões</h1><p class="sub">Cartão desativado some da importação e dos gastos manuais, mas o histórico continua no painel.</p></div>
+      <button class="btn primary" id="novoCartao">+ Novo cartão</button>
+    </header>
+    <div id="listaCartoes" class="cartoes"></div>
+  </section>
+</div>
+
+<dialog id="dlgClassificar">
+  <form method="dialog" id="formClassificar">
+    <h2>Classificar</h2>
+    <p id="clsDescricao" class="mono"></p>
+    <label>Categoria<input id="clsCategoria" list="listaCategorias" required></label>
+    <label>Regra (regex na descrição)<input id="clsPadrao" class="mono" required></label>
+    <small>A regra vale para este e para os próximos lançamentos que casarem com ela.</small>
+    <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar regra</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgRegra">
+  <form method="dialog" id="formRegra">
+    <h2 id="tRegra">Nova regra</h2>
+    <label>Regex na descrição<input name="padrao" class="mono" required placeholder="Ex.: ifood|rappi"></label>
+    <label>Categoria<input name="categoria" list="listaCategorias" required></label>
+    <small id="previaRegra">Regra nova entra no topo da lista e vence as outras.</small>
+    <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgGasto">
+  <form method="dialog" id="formGasto">
+    <h2 id="tGasto">Novo gasto</h2>
+    <div class="duas">
+      <label>Data<input type="date" name="data" required></label>
+      <label>Valor (R$)<input type="number" name="valor" min="0.01" step="0.01" inputmode="decimal" required></label>
+    </div>
+    <label>Descrição<input name="descricao" required maxlength="200"></label>
+    <div class="duas">
+      <label>Categoria<input name="categoria" list="listaCategorias" required></label>
+      <label>Pago com<select name="cartao_id" id="gastoCartao"></select></label>
+    </div>
+    <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgCartao">
+  <form method="dialog" id="formCartao">
+    <h2 id="tCartao">Novo cartão</h2>
+    <div class="duas">
+      <label>Nome<input name="nome" required maxlength="40" placeholder="Ex.: Nubank, Itaú Platinum"></label>
+      <label>Banco<input name="banco" required maxlength="40" list="listaBancos"></label>
+    </div>
+    <div class="duas">
+      <label>Cor<input type="color" name="cor" value="#008f63"></label>
+      <label class="check"><input type="checkbox" name="ativo" checked> Ativo</label>
+    </div>
+    <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
+  </form>
+</dialog>
+
+<datalist id="listaCategorias"></datalist>
+<datalist id="listaBancos"><option value="Nubank"><option value="Itaú"><option value="Inter"><option value="C6"><option value="Bradesco"><option value="Santander"><option value="Banco do Brasil"><option value="Caixa"></datalist>
+<script type="module" src="app.js"></script>
