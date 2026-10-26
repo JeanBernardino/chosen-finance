@@ -19,6 +19,7 @@
     <a href="#config"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 2.9-1.2V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.1a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Configurações</a>
   </nav>
   <div class="rodape-menu">
+    <a class="menu-btn versao" id="versao" href="#novidades" hidden title="Novidades"></a>
     <button class="menu-btn" id="tema" aria-label="Alternar tema"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg><span>Tema escuro</span></button>
   </div>
 </aside>
@@ -103,6 +104,13 @@
         </div>
       </article>
     </div>
+  </section>
+
+  <section data-view="novidades" hidden>
+    <header class="cabecalho">
+      <div><h1>Novidades</h1><p class="sub">O que mudou em cada versão.</p></div>
+    </header>
+    <div id="novidades"></div>
   </section>
 
   <section data-view="gastos" hidden>

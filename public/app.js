@@ -32,7 +32,7 @@ const tentar = fn => async (...a) => { try { await fn(...a); } catch (err) { sta
 
 // ---------- navegação e tema ----------
 const VIEWS = { painel: () => carregar(), comparar: () => carregarComparar(), gastos: () => carregarGastos(), importar: () => carregarImportacoes(), cartoes: () => carregarCartoes(),
-  config: () => carregarRegras() };
+  config: () => carregarRegras(), novidades: () => carregarNovidades() };
 function rota() {
   const v = VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : "painel";
   for (const s of document.querySelectorAll("[data-view]")) s.hidden = s.dataset.view !== v;
@@ -307,6 +307,37 @@ function renderComparar() {
   $("cmpTotal").innerHTML = cats.length ? `<tr><td>Total</td>${span.map((m, i) => celula(valores[i], porMes.get(mesAnterior(m)) ?? 0)).join("")}<td class="num mono">${brl(total)}</td></tr>` : "";
 }
 for (const id of ["cmpDe", "cmpAte"]) $(id).addEventListener("change", renderComparar);
+
+// ---------- novidades: notas de cada versão (CHANGELOG.md); ponto no menu enquanto houver versão não vista ----------
+let versao = "", releases = [];
+const VISTA = "versaoVista";
+const vista = () => { try { return localStorage.getItem(VISTA); } catch { return null; } };
+function pintarVersao() {
+  $("versao").hidden = !versao;
+  $("versao").innerHTML = `v${esc(versao)}${vista() !== versao ? `<span class="ponto-novo" aria-label="versão nova"></span>` : ""}`;
+}
+function md(src) { // o markdown do CHANGELOG: ### título, - item, **negrito**, `código`; escapa antes
+  const inline = t => esc(t).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  let html = "", lista = false;
+  for (const l of src.split("\n")) {
+    const li = l.match(/^\s*- (.*)/);
+    if (!li && lista && !/^\s{2,}\S/.test(l)) { html += "</ul>"; lista = false; }
+    if (li) { if (!lista) { html += "<ul>"; lista = true; } html += `<li>${inline(li[1])}`; }
+    else if (lista && l.trim()) html += ` ${inline(l.trim())}`; // continuação do item na linha de baixo
+    else if (l.startsWith("### ")) html += `<h3>${inline(l.slice(4))}</h3>`;
+    else if (l.trim()) html += `<p>${inline(l)}</p>`;
+  }
+  return html + (lista ? "</ul>" : "");
+}
+async function carregarNovidades() {
+  if (!releases.length) ({ versao, releases } = await api("GET", "/api/releases"));
+  try { localStorage.setItem(VISTA, versao); } catch {}
+  pintarVersao();
+  $("novidades").innerHTML = releases.map(r => `<article class="card release"><div class="card-topo"><div><h2>v${esc(r.versao)}</h2>
+    <p class="sub">${r.data ? dataBr(r.data) : ""}${r.versao === versao ? " · versão atual" : ""}</p></div></div>${md(r.notas)}</article>`).join("")
+    || `<p class="fraco">Sem notas de versão.</p>`;
+}
+api("GET", "/api/releases").then(r => { ({ versao, releases } = r); pintarVersao(); }).catch(() => {});
 
 // ---------- configurações: regras de categoria ----------
 let regras = [];

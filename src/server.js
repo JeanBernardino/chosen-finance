@@ -10,6 +10,13 @@ const PORT = Number(process.env.PORT || 4780);
 const PUBLIC = new URL("../public/", import.meta.url).pathname;
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png" };
 const MAX_UPLOAD = 20 * 1024 * 1024;
+const { version } = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url)));
+// Novidades: o CHANGELOG.md é a mesma fonte das notas do release no GitHub
+const CHANGELOG = new URL("../CHANGELOG.md", import.meta.url);
+const releases = () => fs.readFileSync(CHANGELOG, "utf8").split(/^## /m).slice(1).map(sec => {
+  const [cab, ...resto] = sec.split("\n"), m = cab.match(/^\[(.+?)\](?: - (\S+))?/);
+  return m && { versao: m[1], data: m[2] ?? null, notas: resto.join("\n").trim() };
+}).filter(Boolean);
 
 const pool = db.abrir();
 await db.migrar(pool);
@@ -29,6 +36,7 @@ async function corpo(req) {
 }
 
 const rotas = {
+  "GET /api/releases": () => ({ versao: version, releases: releases() }),
   "GET /api/transacoes": async () => categorizar(await db.transacoes(pool), await db.regras(pool)),
   "POST /api/importar": async (req, url) => {
     const nome = url.searchParams.get("nome") ?? "";

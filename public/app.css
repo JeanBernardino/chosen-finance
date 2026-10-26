@@ -193,3 +193,11 @@ dialog small { color: var(--muted); }
 .cmp-cat td small { display: block; font-size: 11px; }
 .cmp-cat th:first-child, .cmp-cat td:first-child { position: sticky; left: 0; background: var(--card); }
 .cmp-cat tfoot td { font-weight: 600; border-top: 1px solid var(--line); }
+
+/* novidades: versão no menu e notas de cada release */
+.versao[hidden] { display: none; }
+.versao { font-variant-numeric: tabular-nums; color: var(--muted); }
+.ponto-novo { width: 7px; height: 7px; border-radius: 50%; background: var(--chart); margin-left: 6px; }
+.release h3 { font-size: 13px; margin: 14px 0 4px; color: var(--muted); }
+.release ul { margin: 0; padding-left: 20px; }
+.release li { margin: 4px 0; line-height: 1.5; }
