@@ -1,4 +1,5 @@
 // Front: busca tudo uma vez e agrega no navegador (volume pessoal cabe com folga).
+import { parcelasAbertas, parcelasPorMes } from "./analises.js";
 const FORA_DOS_GASTOS = ["Pagamento de fatura", "Transferência entre contas"];
 const $ = id => document.getElementById(id);
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format;
@@ -31,7 +32,7 @@ function status(msg, erro = false) {
 const tentar = fn => async (...a) => { try { await fn(...a); } catch (err) { status(err.message, true); } };
 
 // ---------- navegação e tema ----------
-const VIEWS = { painel: () => carregar(), comparar: () => carregarComparar(), gastos: () => carregarGastos(), importar: () => carregarImportacoes(), cartoes: () => carregarCartoes(),
+const VIEWS = { painel: () => carregar(), comparar: () => carregarComparar(), compromissos: () => carregarCompromissos(), gastos: () => carregarGastos(), importar: () => carregarImportacoes(), cartoes: () => carregarCartoes(),
   config: () => carregarRegras(), novidades: () => carregarNovidades(), assistente: () => $("pergunta").focus() };
 function rota() {
   const v = VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : "painel";
@@ -102,7 +103,7 @@ function render() {
     ${origens.map(o => `<div class="kpi origem" style="--cor:${cor(o)}">
       <span class="titulo">${ponto(o)}${esc(o)}</span><strong>${brl(porOrigem.get(o) ?? 0)}</strong>
       <small>${total ? ((porOrigem.get(o) ?? 0) / total * 100).toFixed(0) : 0}% do gasto</small></div>`).join("")}
-    <div class="kpi"><span>Parcelas a pagar</span><strong>${brl(parcelasFuturas(todas))}</strong><small>soma das próximas parcelas</small></div>
+    <div class="kpi"><span>Parcelas a pagar</span><strong>${brl(parcelasAbertas(todas).reduce((s, p) => s + p.restante, 0))}</strong><small><a href="#compromissos">ver mês a mês</a></small></div>
     <div class="kpi"><span>Sem categoria</span><strong>${brl(soma(sem))}</strong><small>${sem.length} lançamentos para classificar</small></div>`;
   $("tCategoria").textContent = `${titulo} por categoria`;
   $("tMes").textContent = `${titulo} por mês`;
@@ -189,16 +190,6 @@ const quebrar = (lista, chave) => {
   }
   return [...m].sort((a, b) => b[1].total - a[1].total);
 };
-
-// Quanto falta das compras parceladas, pela última parcela vista de cada compra.
-function parcelasFuturas(lista) {
-  const ultima = new Map();
-  for (const t of lista.filter(t => t.parcela_total && t.valor < 0)) {
-    const k = [t.origem, t.descricao, t.parcela_total, t.valor].join("|");
-    if ((ultima.get(k)?.parcela_atual ?? 0) < t.parcela_atual) ultima.set(k, t);
-  }
-  return [...ultima.values()].reduce((s, t) => s + (t.parcela_total - t.parcela_atual) * -t.valor, 0);
-}
 
 $("mes").addEventListener("change", render);
 $("busca").addEventListener("input", render);
@@ -307,6 +298,38 @@ function renderComparar() {
   $("cmpTotal").innerHTML = cats.length ? `<tr><td>Total</td>${span.map((m, i) => celula(valores[i], porMes.get(mesAnterior(m)) ?? 0)).join("")}<td class="num mono">${brl(total)}</td></tr>` : "";
 }
 for (const id of ["cmpDe", "cmpAte"]) $(id).addEventListener("change", renderComparar);
+
+// ---------- compromissos: parcelas que faltam ----------
+async function carregarCompromissos() {
+  todas = await api("GET", "/api/transacoes");
+  const abertas = parcelasAbertas(todas), porMes = parcelasPorMes(abertas);
+  const proximo = porMes.find(([m]) => m >= hoje().slice(0, 7));
+
+  $("kpisCompromissos").innerHTML = `
+    <div class="kpi destaque"><span>Parcelas a pagar</span><strong>${brl(abertas.reduce((s, p) => s + p.restante, 0))}</strong>
+      <small>${abertas.length} ${abertas.length === 1 ? "compra parcelada" : "compras parceladas"} em aberto</small></div>
+    <div class="kpi"><span>Parcelas ${proximo ? `em ${nomeMes(proximo[0])}` : "no próximo mês"}</span><strong>${brl(proximo?.[1] ?? 0)}</strong><small>já comprometido na fatura</small></div>`;
+
+  const topo = Math.max(...porMes.map(([, v]) => v), 1);
+  $("parcelasMes").hidden = !porMes.length;
+  $("semParcelas").hidden = porMes.length > 0;
+  $("parcelasMes").innerHTML = porMes.map(([m, v]) => `
+    <div class="coluna" title="${nomeMes(m)}: ${brl(v)}">
+      <span class="valor">${brl(v).replace(/,\d\d$/, "")}</span>
+      <span class="pilar cheio" style="height:${(v / topo * 100).toFixed(1)}%"></span>
+      <span class="rotulo">${mesCurto(m)}</span>
+    </div>`).join("");
+
+  $("linhasParcelas").innerHTML = abertas.map(p => `
+    <tr>
+      <td>${esc(p.descricao)}</td>
+      <td><span class="badge">${ponto(p.origem)}${esc(p.origem)}</span></td>
+      <td class="mono">${p.parcela_atual}/${p.parcela_total} <span class="fraco">· faltam ${p.faltam}</span></td>
+      <td class="num mono">${brl(p.valor)}</td>
+      <td>${nomeMes(p.fim)}</td>
+      <td class="num mono">${brl(p.restante)}</td>
+    </tr>`).join("") || `<tr><td colspan="6" class="fraco centro">Nenhuma compra parcelada em aberto.</td></tr>`;
+}
 
 // ---------- novidades: notas de cada versão (CHANGELOG.md); ponto no menu enquanto houver versão não vista ----------
 let versao = "", releases = [];

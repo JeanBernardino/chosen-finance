@@ -13,6 +13,7 @@
   <nav class="menu" aria-label="Seções">
     <a href="#painel"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4zm10 7h6V11h-6zM4 20h6v-4H4zm10-11h6V4h-6z"/></svg>Visão geral</a>
     <a href="#comparar"><svg viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3"/></svg>Comparar</a>
+    <a href="#compromissos"><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4zM4 10h16M8 3v5m8-5v5"/></svg>Compromissos</a>
     <a href="#assistente"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>Assistente</a>
     <a href="#gastos"><svg viewBox="0 0 24 24"><path d="M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2zM9 9h6M9 13h6"/></svg>Gastos manuais</a>
     <a href="#importar"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>Importar faturas</a>
@@ -105,6 +106,27 @@
         </div>
       </article>
     </div>
+  </section>
+
+  <section data-view="compromissos" hidden>
+    <header class="cabecalho">
+      <div><h1>Compromissos</h1><p class="sub">O que já está contratado para os próximos meses: parcelas que faltam em cada compra parcelada.</p></div>
+    </header>
+    <div class="kpis" id="kpisCompromissos"></div>
+    <article class="card">
+      <div class="card-topo"><div><h2>Parcelas por mês</h2><p class="sub">Quanto das próximas faturas já está comprometido com compras parceladas</p></div></div>
+      <div id="parcelasMes" class="colunas"></div>
+      <p id="semParcelas" class="fraco centro" hidden>Nenhuma compra parcelada em aberto.</p>
+    </article>
+    <article class="card">
+      <div class="card-topo"><div><h2>Parcelamentos em aberto</h2><p class="sub">Pela última parcela vista de cada compra</p></div></div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Compra</th><th>Cartão</th><th>Parcela</th><th class="num">Por mês</th><th>Última em</th><th class="num">Falta pagar</th></tr></thead>
+          <tbody id="linhasParcelas"></tbody>
+        </table>
+      </div>
+    </article>
   </section>
 
   <section data-view="assistente" hidden>

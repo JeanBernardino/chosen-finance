@@ -1,5 +1,6 @@
 // Assistente: conversa sobre os gastos com um modelo local do Ollama. Nada sai da máquina.
 import { FORA_DOS_GASTOS } from "./categorias.js";
+import { estabelecimento, parcelasAbertas, parcelasPorMes } from "../public/analises.js";
 
 const OLLAMA = process.env.OLLAMA_URL || "http://127.0.0.1:11434";
 const MODELO = process.env.OLLAMA_MODEL || "gemma3:12b";
@@ -7,8 +8,6 @@ const MAX_MENSAGENS = 20, MAX_TEXTO = 4000;
 
 const brl = v => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const ehGasto = t => t.valor < 0 && !FORA_DOS_GASTOS.includes(t.categoria);
-// mesma compra parcelada em meses diferentes vira um estabelecimento só
-const estabelecimento = d => d.replace(/\s*-?\s*parcela\s*\d+\/\d+/i, "").replace(/\s+\d{2}\/\d{2}$/, "").trim();
 
 function somar(lista, chave, valor) {
   const m = new Map();
@@ -65,15 +64,10 @@ export function contexto(transacoes, gastosManuais, hoje = new Date().toISOStrin
   if (recorrentes.length) linhas.push("", "## Cobranças recorrentes (prováveis assinaturas)",
     ...recorrentes.map(([k, e]) => `- ${k} [${e.ultimo.categoria}]: ${brl(-e.ultimo.valor)} na última cobrança`));
 
-  // parcelas ainda por vir, pela última parcela vista de cada compra
-  const ultima = new Map();
-  for (const t of transacoes.filter(t => t.parcela_total && t.valor < 0)) {
-    const k = [t.origem, estabelecimento(t.descricao), t.parcela_total, t.valor].join("|");
-    if ((ultima.get(k)?.parcela_atual ?? 0) < t.parcela_atual) ultima.set(k, t);
-  }
-  const abertas = [...ultima.values()].filter(t => t.parcela_atual < t.parcela_total);
+  const abertas = parcelasAbertas(transacoes);
   if (abertas.length) linhas.push("", "## Parcelamentos em aberto",
-    ...abertas.map(t => `- ${estabelecimento(t.descricao)}: ${brl(-t.valor)}/mês, faltam ${t.parcela_total - t.parcela_atual} de ${t.parcela_total}`));
+    ...abertas.map(p => `- ${p.descricao}: ${brl(p.valor)}/mês, faltam ${p.faltam} de ${p.parcela_total}`),
+    "", "## Parcelas a pagar por mês", ...parcelasPorMes(abertas).map(([m, v]) => `- ${m}: ${brl(v)}`));
 
   const manuais = gastosManuais.filter(g => recentes.includes(g.data.slice(0, 7)));
   if (manuais.length) linhas.push("", `## Gastos manuais anotados (${recentes.join(", ")}), fora das faturas`,
