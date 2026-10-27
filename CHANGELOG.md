@@ -3,6 +3,20 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.7.0] - 2026-10-27
+
+### Novo
+- **Parcelas de um mês em Compromissos:** clique numa coluna de "Parcelas por mês" para ver as compras que caem naquele
+  mês, com cartão, número da parcela, valor e total. A lista ordena pelo cabeçalho e filtra por busca e por cartão.
+
+### Melhorado
+- **Assistente sempre à mão:** saiu do menu e virou um botão no canto da tela, que abre o chat por cima de qualquer
+  tela. A conversa continua enquanto você navega; `Esc` ou o ✕ fecham.
+
+### Corrigido
+- **Assinaturas** que não vieram na última fatura do cartão deixam de contar como recorrentes: podem já ter sido
+  canceladas.
+
 ## [0.6.1] - 2026-10-27
 
 ### Corrigido
