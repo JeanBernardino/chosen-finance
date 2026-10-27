@@ -3,6 +3,13 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.5.0] - 2026-10-27
+
+### Novo
+- **Orçamento por categoria:** defina em Configurações quanto quer gastar por mês em cada categoria (com a média dos
+  últimos 3 meses para ajudar). Na visão geral, com um mês escolhido, cada categoria mostra quanto falta ou quanto
+  passou, e o card avisa quando alguma passa de 80% do limite.
+
 ## [0.4.0] - 2026-10-27
 
 ### Novo
