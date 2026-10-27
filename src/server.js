@@ -41,6 +41,7 @@ const rotas = {
   "POST /api/importar": async (req, url) => {
     const nome = url.searchParams.get("nome") ?? "";
     const lidas = await ler(nome, await corpo(req));
+    if (!lidas.length) throw invalido("nenhum lançamento encontrado no arquivo (layout não reconhecido?)");
     return { arquivo: nome, lidas: lidas.length, novas: await db.salvar(pool, lidas, idOuNulo(url.searchParams.get("cartao"))) };
   },
   "GET /api/importacoes": () => db.importacoes(pool),
