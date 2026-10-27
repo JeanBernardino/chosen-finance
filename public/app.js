@@ -33,7 +33,7 @@ const tentar = fn => async (...a) => { try { await fn(...a); } catch (err) { sta
 
 // ---------- navegação e tema ----------
 const VIEWS = { painel: () => carregar(), comparar: () => carregarComparar(), compromissos: () => carregarCompromissos(), gastos: () => carregarGastos(), importar: () => carregarImportacoes(), cartoes: () => carregarCartoes(),
-  config: () => carregarRegras(), novidades: () => carregarNovidades(), assistente: () => $("pergunta").focus() };
+  config: () => carregarRegras(), novidades: () => carregarNovidades() };
 function rota() {
   const v = VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : "painel";
   for (const s of document.querySelectorAll("[data-view]")) s.hidden = s.dataset.view !== v;
@@ -416,7 +416,7 @@ async function perguntar(texto) {
     let txt = "";
     for (let p; !(p = await leitor.read()).done;) {
       resposta.innerHTML = md(txt += p.value);
-      resposta.scrollIntoView({ block: "end" });
+      $("conversa").scrollTop = $("conversa").scrollHeight; // rola só o painel, não a página por trás
     }
     conversa.push({ role: "assistant", content: txt });
   } catch (err) {
@@ -497,6 +497,15 @@ $("formRegra").elements.padrao.addEventListener("input", previaRegra);
 $("novaRegra").addEventListener("click", () => abrirRegra());
 $("buscaRegra").addEventListener("input", renderRegras);
 $("linhasRegras").addEventListener("click", tentar(async e => {
+// painel flutuante: abre por cima de qualquer tela, conversa continua ao navegar
+const mostrarChat = abrir => {
+  $("chatFlutuante").hidden = !abrir;
+  $("abrirChat").setAttribute("aria-expanded", abrir);
+  if (abrir) $("pergunta").focus(); else $("abrirChat").focus();
+};
+$("abrirChat").addEventListener("click", () => mostrarChat($("chatFlutuante").hidden));
+$("fecharChat").addEventListener("click", () => mostrarChat(false));
+$("chatFlutuante").addEventListener("keydown", e => e.key === "Escape" && mostrarChat(false));
   const b = e.target.closest("button");
   const r = b && regras.find(r => r.id === +(b.dataset.id ?? b.dataset.editar ?? b.dataset.apagar));
   if (!r) return;

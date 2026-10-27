@@ -208,7 +208,15 @@ dialog small { color: var(--muted); }
 
 /* assistente: conversa com o modelo local */
 .chat { display: grid; gap: 14px; }
-.conversa { display: grid; gap: 10px; align-content: start; min-height: 320px; max-height: calc(100vh - 300px); overflow-y: auto; }
+.chat-flutuante { position: fixed; right: 24px; bottom: 92px; z-index: 20; width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 116px);
+  grid-template-rows: auto minmax(0, 1fr) auto; box-shadow: 0 12px 32px rgb(0 0 0 / .18); }
+.chat-flutuante .card-topo .btn:last-child { margin-left: 0; padding-inline: 10px; }
+.chat-fab { position: fixed; right: 24px; bottom: 24px; z-index: 20; width: 56px; height: 56px; border-radius: 50%; border: 0; cursor: pointer;
+  display: grid; place-items: center; background: var(--accent); color: var(--on-accent); box-shadow: 0 6px 18px rgb(0 0 0 / .2); }
+.chat-fab:hover { background: var(--accent-hover); }
+.chat-fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.chat-fab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.conversa { display: grid; gap: 10px; align-content: start; min-height: 240px; overflow-y: auto; }
 .sugestoes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-self: center; }
 .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; line-height: 1.55; overflow-wrap: anywhere; }
 .msg p, .msg ul { margin: 0 0 8px; }
@@ -221,4 +229,8 @@ dialog small { color: var(--muted); }
 .enviar { display: flex; gap: 8px; align-items: flex-end; }
 .enviar textarea { flex: 1; font: inherit; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; resize: vertical; min-width: 0; }
 .enviar textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-@media (max-width: 900px) { .msg { max-width: 100%; } }
+@media (max-width: 900px) {
+  .msg { max-width: 100%; }
+  .chat-fab { right: 16px; bottom: 16px; }
+  .chat-flutuante { right: 16px; bottom: 84px; max-height: calc(100vh - 100px); }
+}
