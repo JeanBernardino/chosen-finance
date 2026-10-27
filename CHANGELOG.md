@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.3.0] - 2026-10-27
+
+### Novo
+- **Assistente:** converse sobre os seus gastos (onde cortar, por que o mês subiu, quais assinaturas paga, quanto falta de
+  parcelas). Roda num modelo local pelo Ollama: nada sai da sua máquina. O `docker-compose.yml` sobe o Ollama e baixa o modelo.
+
 ## [0.2.0] - 2026-10-26
 
 ### Novo
