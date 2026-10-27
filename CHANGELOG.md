@@ -3,6 +3,15 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.6.0] - 2026-10-27
+
+### Novo
+- **Assinaturas em Compromissos:** o app encontra as cobranças que se repetem todo mês com valor parecido e mostra o total
+  por mês e por ano, as que subiram ou caíram de preço e as que pararam de cobrar.
+
+### Melhorado
+- **Assistente** reconhece as assinaturas pela mesma regra da tela e deixa de fora as canceladas.
+
 ## [0.5.0] - 2026-10-27
 
 ### Novo
