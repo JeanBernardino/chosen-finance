@@ -39,12 +39,14 @@ export function parcelasPorMes(abertas) {
  * Prováveis assinaturas nos últimos 6 meses de `gastos` (já sem pagamento de fatura): mesmo estabelecimento, sem ser
  * parcela, cobrado no máximo uma vez por mês (supermercado e restaurante repetem no mês), com valor parecido (a menor
  * cobrança é ao menos 75% da maior: cabe reajuste, não compra de valor variável) e em pelo menos 3 meses,
- * ou 2 se já está na categoria Assinaturas. `ativa`: cobrada num dos 2 últimos meses com dados.
+ * ou 2 se já está na categoria Assinaturas. Só entra a que veio na última fatura do seu cartão: se não veio,
+ * pode já ter sido cancelada.
  */
 export function recorrentes(gastos) {
   const meses = [...new Set(gastos.map(t => t.mes))].sort().slice(-6);
-  const porLoja = new Map();
+  const porLoja = new Map(), ultimaFatura = new Map();
   for (const t of gastos) {
+    if (t.mes > (ultimaFatura.get(t.origem) ?? "")) ultimaFatura.set(t.origem, t.mes);
     if (t.parcela_total || !meses.includes(t.mes)) continue;
     const k = estabelecimento(t.descricao).replace(/\s*\*\s*/g, "*"); // "Dm *Spotify" e "Dm*Spotify" são a mesma
     porLoja.set(k, [...porLoja.get(k) ?? [], t]);
@@ -55,9 +57,9 @@ export function recorrentes(gastos) {
     ts.sort((a, b) => a.data.localeCompare(b.data));
     const ultima = ts.at(-1), anterior = ts.at(-2);
     const valores = ts.map(t => -t.valor);
-    if (ts.length > nMeses || nMeses < (ultima.categoria === "Assinaturas" ? 2 : 3) || Math.min(...valores) < Math.max(...valores) * 0.75) continue;
+    if (ultima.mes !== ultimaFatura.get(ultima.origem) || ts.length > nMeses || nMeses < (ultima.categoria === "Assinaturas" ? 2 : 3) || Math.min(...valores) < Math.max(...valores) * 0.75) continue;
     lista.push({ descricao: estabelecimento(ultima.descricao), categoria: ultima.categoria, origem: ultima.origem, cor: ultima.cor, valor: -ultima.valor,
-      anterior: -anterior.valor, meses: nMeses, ultimoMes: ultima.mes, ativa: ultima.mes >= meses.at(-2) });
+      anterior: -anterior.valor, meses: nMeses });
   }
   return lista.sort((a, b) => b.valor - a.valor);
 }

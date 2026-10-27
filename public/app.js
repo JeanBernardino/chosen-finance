@@ -317,7 +317,7 @@ const reajuste = a => { const p = (a.valor - a.anterior) / a.anterior; return Ma
 async function carregarCompromissos() {
   todas = await api("GET", "/api/transacoes");
   const abertas = parcelasAbertas(todas), porMes = parcelasPorMes(abertas);
-  const todasRec = recorrentes(todas.filter(ehGasto)), ativas = todasRec.filter(a => a.ativa);
+  const ativas = recorrentes(todas.filter(ehGasto));
   const mensal = ativas.reduce((s, a) => s + a.valor, 0);
   const subiram = ativas.filter(a => reajuste(a) > 0);
   const proximo = porMes.find(([m]) => m >= hoje().slice(0, 7));
@@ -349,18 +349,16 @@ async function carregarCompromissos() {
       <td class="num mono">${brl(p.restante)}</td>
     </tr>`).join("") || `<tr><td colspan="6" class="fraco centro">Nenhuma compra parcelada em aberto.</td></tr>`;
 
-  // ativas primeiro; a que parou de cobrar fica no fim, para conferir se foi cancelada mesmo
-  const situacao = a => !a.ativa ? `<span class="fraco">sem cobrança desde ${nomeMes(a.ultimoMes)}</span>`
-    : reajuste(a) > 0 ? `<span class="delta sobe">▲ subiu de ${brl(a.anterior)}</span>`
+  const situacao = a => reajuste(a) > 0 ? `<span class="delta sobe">▲ subiu de ${brl(a.anterior)}</span>`
     : reajuste(a) < 0 ? `<span class="delta desce">▼ caiu de ${brl(a.anterior)}</span>` : "Ativa";
-  $("linhasAssinaturas").innerHTML = [...ativas, ...todasRec.filter(a => !a.ativa)].map(a => `
+  $("linhasAssinaturas").innerHTML = ativas.map(a => `
     <tr>
       <td>${esc(a.descricao)}</td>
       <td><span class="tag">${esc(a.categoria)}</span></td>
       <td><span class="badge">${ponto(a.origem)}${esc(a.origem)}</span></td>
       <td class="num mono">${a.meses}</td>
       <td class="num mono">${brl(a.valor)}</td>
-      <td class="num mono ${a.ativa ? "" : "fraco"}">${brl(a.valor * 12)}</td>
+      <td class="num mono">${brl(a.valor * 12)}</td>
       <td>${situacao(a)}</td>
     </tr>`).join("") || `<tr><td colspan="7" class="fraco centro">Nenhuma cobrança recorrente encontrada.</td></tr>`;
 }

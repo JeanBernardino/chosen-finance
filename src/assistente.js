@@ -51,7 +51,7 @@ export function contexto(transacoes, gastosManuais, hoje = new Date().toISOStrin
     ...[...porLoja].sort((a, b) => b[1].total - a[1].total).slice(0, 30)
       .map(([k, e]) => `- ${k} [${e.categoria}]: ${brl(e.total)} em ${e.vezes} compra(s)`));
 
-  const assinaturas = recorrentes(gastos).filter(r => r.ativa);
+  const assinaturas = recorrentes(gastos);
   if (assinaturas.length) linhas.push("", "## Cobranças recorrentes (prováveis assinaturas)",
     ...assinaturas.map(r => `- ${r.descricao} [${r.categoria}]: ${brl(r.valor)} na última cobrança`));
 

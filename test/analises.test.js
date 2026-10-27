@@ -23,7 +23,7 @@ test("parcelasPorMes soma compras diferentes e vira o ano", () => {
   assert.deepEqual(parcelasPorMes(parcelasAbertas([a, b])), [["2027-01", 80], ["2027-02", 50]]);
 });
 
-test("recorrentes acha assinatura, ignora o que repete no mês e marca alta de preço e cancelada", () => {
+test("recorrentes acha assinatura, ignora o que repete no mês, marca alta de preço e some com a que saiu da última fatura", () => {
   const meses = ["2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10"];
   const gastos = [
     ...meses.map((m, i) => t(m, "Netflix", i < 5 ? -39.9 : -44.9, "Assinaturas")),
@@ -33,13 +33,13 @@ test("recorrentes acha assinatura, ignora o que repete no mês e marca alta de p
     t("2026-09", "Padaria", -10, "Restaurante"), t("2026-10", "Padaria", -12, "Restaurante"),   // 2 meses fora de Assinaturas não
     ...meses.slice(3).map((m, i) => t(m, "Loja Y", [-138, -448, -90][i], "Compras")),         // valor variável não
     t("2026-08", "Dm *Disney", -33.9, "Assinaturas"), t("2026-10", "Dm*Disney", -33.9, "Assinaturas"),
+    ...meses.slice(0, 4).map(m => t(m, "Youtube", -24.9, "Assinaturas", { origem: "Itaú" })),   // última fatura do Itaú é 2026-09
+    t("2026-09", "Outra loja", -5, "Compras", { origem: "Itaú" }),
   ];
   const r = Object.fromEntries(recorrentes(gastos).map(a => [a.descricao, a]));
-  assert.deepEqual(Object.keys(r).sort(), ["Academia", "Dm*Disney", "Netflix", "Spotify"]);
+  assert.deepEqual(Object.keys(r).sort(), ["Dm*Disney", "Netflix", "Spotify"]); // Academia e Youtube não vieram na última fatura
   assert.equal(r.Netflix.valor, 44.9);
   assert.equal(r.Netflix.anterior, 39.9);
-  assert.equal(r.Netflix.ativa, true);
-  assert.equal(r.Academia.ativa, false);
 });
 
 test("orcamento soma por categoria com limite e ordena pelo mais estourado", () => {
