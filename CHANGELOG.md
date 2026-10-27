@@ -3,6 +3,16 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.4.0] - 2026-10-27
+
+### Novo
+- **Compromissos:** tela nova com quanto falta pagar das compras parceladas, quanto das próximas faturas já está comprometido
+  mês a mês e a lista de parcelamentos em aberto, com o mês da última parcela.
+
+### Corrigido
+- **Parcelas a pagar** contava em dobro as compras cuja 1ª parcela vem com centavos diferentes das outras: o total do
+  painel e o do assistente agora batem com as faturas.
+
 ## [0.3.0] - 2026-10-27
 
 ### Novo
