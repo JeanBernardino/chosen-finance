@@ -99,7 +99,12 @@
         <div id="cmpMeses" class="colunas"></div>
       </article>
       <article class="card">
-        <div class="card-topo"><div><h2>Por categoria</h2><p class="sub" id="cmpBase"></p></div></div>
+        <div class="card-topo">
+          <div><h2>Por categoria</h2><p class="sub" id="cmpBase"></p></div>
+          <div class="filtros-grid">
+          <input type="search" id="buscaCmp" placeholder="Buscar categoria" aria-label="Buscar categoria">
+        </div>
+        </div>
         <div class="tabela-wrap">
           <table class="cmp-cat">
             <thead id="cmpCab"></thead>
@@ -122,19 +127,31 @@
       <p id="semParcelas" class="fraco centro" hidden>Nenhuma compra parcelada em aberto.</p>
     </article>
     <article class="card">
-      <div class="card-topo"><div><h2>Parcelamentos em aberto</h2><p class="sub">Pela última parcela vista de cada compra</p></div></div>
+      <div class="card-topo">
+        <div><h2>Parcelamentos em aberto</h2><p class="sub">Pela última parcela vista de cada compra</p></div>
+        <div class="filtros-grid">
+          <input type="search" id="buscaParcelas" placeholder="Buscar compra" aria-label="Buscar compra">
+          <select id="cartaoParcelas" aria-label="Filtrar cartão"></select>
+        </div>
+      </div>
       <div class="tabela-wrap">
         <table>
-          <thead><tr><th>Compra</th><th>Cartão</th><th>Parcela</th><th class="num">Por mês</th><th>Última em</th><th class="num">Falta pagar</th></tr></thead>
+          <thead id="cabParcelas"><tr><th><button class="ordenar" data-ordem="descricao">Compra</button></th><th><button class="ordenar" data-ordem="origem">Cartão</button></th><th><button class="ordenar" data-ordem="faltam">Parcela</button></th><th class="num"><button class="ordenar" data-ordem="valor">Por mês</button></th><th><button class="ordenar" data-ordem="fim">Última em</button></th><th class="num"><button class="ordenar" data-ordem="restante">Falta pagar</button></th></tr></thead>
           <tbody id="linhasParcelas"></tbody>
         </table>
       </div>
     </article>
     <article class="card">
-      <div class="card-topo"><div><h2>Assinaturas e cobranças recorrentes</h2><p class="sub">Cobradas uma vez por mês em pelo menos 3 dos últimos 6 meses (2, se já estão em Assinaturas) e presentes na última fatura do cartão</p></div></div>
+      <div class="card-topo">
+        <div><h2>Assinaturas e cobranças recorrentes</h2><p class="sub">Cobradas uma vez por mês em pelo menos 3 dos últimos 6 meses (2, se já estão em Assinaturas) e presentes na última fatura do cartão</p></div>
+        <div class="filtros-grid">
+          <input type="search" id="buscaAssinaturas" placeholder="Buscar estabelecimento ou categoria" aria-label="Buscar estabelecimento ou categoria">
+          <select id="cartaoAssinaturas" aria-label="Filtrar cartão"></select>
+        </div>
+      </div>
       <div class="tabela-wrap">
         <table>
-          <thead><tr><th>Estabelecimento</th><th>Categoria</th><th>Cartão</th><th class="num">Meses</th><th class="num">Por mês</th><th class="num">Por ano</th><th>Situação</th></tr></thead>
+          <thead id="cabAssinaturas"><tr><th><button class="ordenar" data-ordem="descricao">Estabelecimento</button></th><th><button class="ordenar" data-ordem="categoria">Categoria</button></th><th><button class="ordenar" data-ordem="origem">Cartão</button></th><th class="num"><button class="ordenar" data-ordem="meses">Meses</button></th><th class="num"><button class="ordenar" data-ordem="valor">Por mês</button></th><th class="num"><button class="ordenar" data-ordem="ano">Por ano</button></th><th><button class="ordenar" data-ordem="reajuste">Situação</button></th></tr></thead>
           <tbody id="linhasAssinaturas"></tbody>
         </table>
       </div>
@@ -159,13 +176,18 @@
     </header>
     <div class="kpis" id="kpisGastos"></div>
     <article class="card">
+      <div class="card-topo">
+        <div class="filtros-grid">
+          <input type="search" id="buscaGastos" placeholder="Buscar descrição ou categoria" aria-label="Buscar descrição ou categoria">
+          <select id="cartaoGastos" aria-label="Filtrar cartão"></select>
+        </div>
+      </div>
       <div class="tabela-wrap">
         <table>
-          <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Pago com</th><th class="num">Valor</th><th></th></tr></thead>
+          <thead id="cabGastos"><tr><th><button class="ordenar" data-ordem="data">Data</button></th><th><button class="ordenar" data-ordem="descricao">Descrição</button></th><th><button class="ordenar" data-ordem="categoria">Categoria</button></th><th><button class="ordenar" data-ordem="origem">Pago com</button></th><th class="num"><button class="ordenar" data-ordem="valor">Valor</button></th><th></th></tr></thead>
           <tbody id="linhasGastos"></tbody>
         </table>
       </div>
-      <p id="semGastos" class="fraco centro" hidden>Nenhum gasto neste mês.</p>
     </article>
   </section>
 
@@ -187,10 +209,16 @@
       </form>
     </article>
     <article class="card">
-      <div class="card-topo"><h2>Histórico de importações</h2></div>
+      <div class="card-topo">
+        <h2>Histórico de importações</h2>
+        <div class="filtros-grid">
+          <input type="search" id="buscaImportacoes" placeholder="Buscar arquivo" aria-label="Buscar arquivo">
+          <select id="cartaoImportacoes" aria-label="Filtrar cartão"></select>
+        </div>
+      </div>
       <div class="tabela-wrap">
         <table>
-          <thead><tr><th>Arquivo</th><th>Cartão / conta</th><th>Período</th><th class="num">Lançamentos</th><th class="num">Gasto</th><th>Importado em</th><th></th></tr></thead>
+          <thead id="cabImportacoes"><tr><th><button class="ordenar" data-ordem="arquivo">Arquivo</button></th><th><button class="ordenar" data-ordem="origem">Cartão / conta</button></th><th><button class="ordenar" data-ordem="de">Período</button></th><th class="num"><button class="ordenar" data-ordem="lancamentos">Lançamentos</button></th><th class="num"><button class="ordenar" data-ordem="gasto">Gasto</button></th><th><button class="ordenar" data-ordem="em">Importado em</button></th><th></th></tr></thead>
           <tbody id="linhasImportacoes"></tbody>
         </table>
       </div>
@@ -204,12 +232,14 @@
     <article class="card">
       <div class="card-topo">
         <div><h2>Regras de categoria</h2><p class="sub">Regex na descrição. A primeira da lista que casar vence; sem regra, vale a categoria que o banco mandou.</p></div>
-        <input type="search" id="buscaRegra" placeholder="Buscar regex ou categoria" aria-label="Buscar regra">
+        <div class="filtros-grid">
+          <input type="search" id="buscaRegra" placeholder="Buscar regex ou categoria" aria-label="Buscar regex ou categoria">
+        </div>
         <button class="btn primary" id="novaRegra">+ Nova regra</button>
       </div>
       <div class="tabela-wrap">
         <table>
-          <thead><tr><th class="num">#</th><th>Regex</th><th>Categoria</th><th class="num">Classifica</th><th></th></tr></thead>
+          <thead id="cabRegras"><tr><th class="num"><button class="ordenar" data-ordem="pos">#</button></th><th><button class="ordenar" data-ordem="padrao">Regex</button></th><th><button class="ordenar" data-ordem="categoria">Categoria</button></th><th class="num"><button class="ordenar" data-ordem="usos">Classifica</button></th><th></th></tr></thead>
           <tbody id="linhasRegras"></tbody>
         </table>
       </div>
@@ -217,11 +247,14 @@
     <article class="card">
       <div class="card-topo">
         <div><h2>Orçamento por categoria</h2><p class="sub">Limite mensal sobre os gastos das faturas. A visão geral avisa quando uma categoria passa de 80%.</p></div>
+        <div class="filtros-grid">
+          <input type="search" id="buscaOrcamento" placeholder="Buscar categoria" aria-label="Buscar categoria">
+        </div>
         <button class="btn primary" id="novoOrcamento">+ Novo limite</button>
       </div>
       <div class="tabela-wrap">
         <table>
-          <thead><tr><th>Categoria</th><th class="num">Limite por mês</th><th class="num">Média dos últimos 3 meses</th><th></th></tr></thead>
+          <thead id="cabOrcamento"><tr><th><button class="ordenar" data-ordem="categoria">Categoria</button></th><th class="num"><button class="ordenar" data-ordem="limite">Limite por mês</button></th><th class="num"><button class="ordenar" data-ordem="media">Média dos últimos 3 meses</button></th><th></th></tr></thead>
           <tbody id="linhasOrcamento"></tbody>
         </table>
       </div>

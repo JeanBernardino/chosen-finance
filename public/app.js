@@ -54,26 +54,27 @@ $("tema").addEventListener("click", () => {
 rotuloTema();
 
 // ---------- grid padrão: toda tabela nova usa, para ordenar pelo cabeçalho e filtrar ----------
-// Cabeçalho com <button class="ordenar" data-ordem="campo">; `chaves`: campo -> valor de ordenação; texto começa
-// crescente, número do maior. Filtra pela busca em `texto` e, se houver o select `cartao`, pela origem.
-// Devolve a função que recebe as linhas e pinta.
+// Cabeçalho com <button class="ordenar" data-ordem="campo">; `chaves`: campo -> valor de ordenação (sem chave, vale
+// o próprio campo da linha); texto começa crescente, número do maior. Filtra pela busca em `texto` e, se houver o select `cartao`, pela origem.
+// Sem `colunas`, a linha de vazio ocupa as colunas do cabeçalho. Devolve a função que recebe as linhas e pinta.
 function grade({ cab, corpo, busca, cartao, chaves, ordem, texto, linha, colunas, vazio, resumo }) {
   let lista = [];
+  const chave = c => chaves[c] ?? (x => x[c]);
   const pintar = () => {
-    const q = semAcento($(busca).value.trim()), o = cartao ? $(cartao).value : "", k = chaves[ordem.campo];
+    const q = semAcento($(busca).value.trim()), o = cartao ? $(cartao).value : "", k = chave(ordem.campo);
     const vis = lista.filter(x => (!o || x.origem === o) && (!q || semAcento(texto(x)).includes(q)))
       .sort((a, b) => { const x = k(a), y = k(b); return (x < y ? -1 : x > y ? 1 : 0) * ordem.dir; });
     for (const b of $(cab).querySelectorAll("[data-ordem]")) {
       b.dataset.dir = b.dataset.ordem === ordem.campo ? (ordem.dir > 0 ? "asc" : "desc") : "";
       b.closest("th").setAttribute("aria-sort", b.dataset.dir ? (ordem.dir > 0 ? "ascending" : "descending") : "none");
     }
-    $(corpo).innerHTML = vis.map(linha).join("") || `<tr><td colspan="${colunas}" class="fraco centro">${vazio}</td></tr>`;
+    $(corpo).innerHTML = vis.map(linha).join("") || `<tr><td colspan="${colunas ?? $(cab).querySelectorAll("th").length}" class="fraco centro">${vazio}</td></tr>`;
     resumo?.(vis);
   };
   $(cab).addEventListener("click", e => {
     const c = e.target.closest("[data-ordem]")?.dataset.ordem;
     if (!c) return;
-    ordem = c === ordem.campo ? { campo: c, dir: -ordem.dir } : { campo: c, dir: lista.length && typeof chaves[c](lista[0]) === "number" ? -1 : 1 };
+    ordem = c === ordem.campo ? { campo: c, dir: -ordem.dir } : { campo: c, dir: lista.length && typeof chave(c)(lista[0]) === "number" ? -1 : 1 };
     pintar();
   });
   $(busca).addEventListener("input", pintar);
@@ -337,14 +338,23 @@ function renderComparar() {
   const v = (c, m) => cel.get(`${c}|${m}`) ?? 0;
   const cats = [...new Set(gastos.filter(t => span.includes(t.mes)).map(t => t.categoria))]
     .map(c => [c, span.reduce((s, m) => s + v(c, m), 0)]).sort((x, y) => y[1] - x[1]);
-  const celula = (val, ant) => `<td class="num mono">${val ? brl(val) : `<span class="fraco">—</span>`}<small>${variacao(val, ant)}</small></td>`;
-  $("cmpBase").textContent = "Cada mês contra o anterior, categorias com mais gasto no intervalo primeiro";
-  $("cmpCab").innerHTML = `<tr><th>Categoria</th>${span.map(m => `<th class="num">${mesCurto(m)}</th>`).join("")}<th class="num">Total</th></tr>`;
-  $("cmpCategorias").innerHTML = cats.map(([c, tot]) => `
-    <tr><td>${esc(c)}</td>${span.map(m => celula(v(c, m), v(c, mesAnterior(m)))).join("")}<td class="num mono">${brl(tot)}</td></tr>`).join("")
-    || `<tr><td colspan="${span.length + 2}" class="fraco centro">Nenhum gasto nesses meses.</td></tr>`;
-  $("cmpTotal").innerHTML = cats.length ? `<tr><td>Total</td>${span.map((m, i) => celula(valores[i], porMes.get(mesAnterior(m)) ?? 0)).join("")}<td class="num mono">${brl(total)}</td></tr>` : "";
+  $("cmpBase").textContent = "Cada mês contra o anterior";
+  $("cmpCab").innerHTML = `<tr><th><button class="ordenar" data-ordem="categoria">Categoria</button></th>${span.map(m =>
+    `<th class="num"><button class="ordenar" data-ordem="${m}">${mesCurto(m)}</button></th>`).join("")}<th class="num"><button class="ordenar" data-ordem="total">Total</button></th></tr>`;
+  // cada linha leva os valores do intervalo (vals) e do mês anterior a cada um (ants); cada mês também vira campo, para ordenar
+  gradeComparar(cats.map(([c, total]) => ({ categoria: c, total, vals: span.map(m => v(c, m)), ants: span.map(m => v(c, mesAnterior(m))),
+    ...Object.fromEntries(span.map(m => [m, v(c, m)])) })));
 }
+const celula = (val, ant) => `<td class="num mono">${val ? brl(val) : `<span class="fraco">—</span>`}<small>${variacao(val, ant)}</small></td>`;
+const somaCol = (lista, campo, i) => lista.reduce((s, x) => s + x[campo][i], 0);
+// o total soma só as categorias visíveis, para acompanhar a busca
+const gradeComparar = grade({
+  cab: "cmpCab", corpo: "cmpCategorias", busca: "buscaCmp", chaves: { categoria: x => x.categoria.toLowerCase() },
+  ordem: { campo: "total", dir: -1 }, texto: x => x.categoria, vazio: "Nenhuma categoria com esses filtros.",
+  linha: x => `<tr><td>${esc(x.categoria)}</td>${x.vals.map((val, i) => celula(val, x.ants[i])).join("")}<td class="num mono">${brl(x.total)}</td></tr>`,
+  resumo: lista => $("cmpTotal").innerHTML = lista.length ? `<tr><td>Total</td>${lista[0].vals.map((_, i) =>
+    celula(somaCol(lista, "vals", i), somaCol(lista, "ants", i))).join("")}<td class="num mono">${brl(lista.reduce((s, x) => s + x.total, 0))}</td></tr>` : "",
+});
 for (const id of ["cmpDe", "cmpAte"]) $(id).addEventListener("change", renderComparar);
 
 // ---------- compromissos: parcelas que faltam e assinaturas ----------
@@ -377,7 +387,14 @@ async function carregarCompromissos() {
       <span class="rotulo">${mesCurto(m)}</span>
     </button>`).join("");
 
-  $("linhasParcelas").innerHTML = abertas.map(p => `
+  gradeParcelas(abertas);
+  gradeAssinaturas(ativas);
+}
+const gradeParcelas = grade({
+  cab: "cabParcelas", corpo: "linhasParcelas", busca: "buscaParcelas", cartao: "cartaoParcelas",
+  chaves: { descricao: p => p.descricao.toLowerCase() },
+  ordem: { campo: "restante", dir: -1 }, texto: p => p.descricao, colunas: 6, vazio: "Nenhuma compra parcelada em aberto.",
+  linha: p => `
     <tr>
       <td>${esc(p.descricao)}</td>
       <td><span class="badge">${ponto(p.origem)}${esc(p.origem)}</span></td>
@@ -385,11 +402,15 @@ async function carregarCompromissos() {
       <td class="num mono">${brl(p.valor)}</td>
       <td>${nomeMes(p.fim)}</td>
       <td class="num mono">${brl(p.restante)}</td>
-    </tr>`).join("") || `<tr><td colspan="6" class="fraco centro">Nenhuma compra parcelada em aberto.</td></tr>`;
-
-  const situacao = a => reajuste(a) > 0 ? `<span class="delta sobe">▲ subiu de ${brl(a.anterior)}</span>`
-    : reajuste(a) < 0 ? `<span class="delta desce">▼ caiu de ${brl(a.anterior)}</span>` : "Ativa";
-  $("linhasAssinaturas").innerHTML = ativas.map(a => `
+    </tr>`,
+});
+const situacao = a => reajuste(a) > 0 ? `<span class="delta sobe">▲ subiu de ${brl(a.anterior)}</span>`
+  : reajuste(a) < 0 ? `<span class="delta desce">▼ caiu de ${brl(a.anterior)}</span>` : "Ativa";
+const gradeAssinaturas = grade({
+  cab: "cabAssinaturas", corpo: "linhasAssinaturas", busca: "buscaAssinaturas", cartao: "cartaoAssinaturas",
+  chaves: { descricao: a => a.descricao.toLowerCase(), ano: a => a.valor, reajuste },
+  ordem: { campo: "valor", dir: -1 }, texto: a => `${a.descricao} ${a.categoria}`, colunas: 7, vazio: "Nenhuma cobrança recorrente encontrada.",
+  linha: a => `
     <tr>
       <td>${esc(a.descricao)}</td>
       <td><span class="tag">${esc(a.categoria)}</span></td>
@@ -398,8 +419,8 @@ async function carregarCompromissos() {
       <td class="num mono">${brl(a.valor)}</td>
       <td class="num mono">${brl(a.valor * 12)}</td>
       <td>${situacao(a)}</td>
-    </tr>`).join("") || `<tr><td colspan="7" class="fraco centro">Nenhuma cobrança recorrente encontrada.</td></tr>`;
-}
+    </tr>`,
+});
 
 // clique numa coluna: as parcelas que caem naquele mês, com o nº que a parcela terá lá
 const gradeParcelasMes = grade({
@@ -527,23 +548,27 @@ function renderRegras() {
     const r = regras.find(r => casa(r.padrao, t.descricao));
     if (r) usos.set(r.id, (usos.get(r.id) ?? 0) + 1);
   }
-  const busca = $("buscaRegra").value.trim().toLowerCase();
-  $("linhasRegras").innerHTML = regras.map((r, i) => [r, i])
-    .filter(([r]) => !busca || `${r.padrao} ${r.categoria}`.toLowerCase().includes(busca))
-    .map(([r, i]) => `
+  gradeRegras(regras.map((r, i) => ({ ...r, pos: i + 1, usos: usos.get(r.id) ?? 0 })));
+}
+// "#" é a prioridade: a ordem padrão é a da lista, e subir/descer mexe na prioridade, não na ordem exibida
+const gradeRegras = grade({
+  cab: "cabRegras", corpo: "linhasRegras", busca: "buscaRegra",
+  chaves: { padrao: r => r.padrao.toLowerCase(), categoria: r => r.categoria.toLowerCase() },
+  ordem: { campo: "pos", dir: 1 }, texto: r => `${r.padrao} ${r.categoria}`, colunas: 5, vazio: "Nenhuma regra.",
+  linha: r => `
     <tr>
-      <td class="num mono fraco">${i + 1}</td>
+      <td class="num mono fraco">${r.pos}</td>
       <td class="mono">${esc(r.padrao)}</td>
       <td><span class="tag">${esc(r.categoria)}</span></td>
-      <td class="num mono ${usos.get(r.id) ? "" : "fraco"}">${usos.get(r.id) ?? 0}</td>
+      <td class="num mono ${r.usos ? "" : "fraco"}">${r.usos}</td>
       <td class="acoes">
-        <button class="icone" data-passo="-1" data-id="${r.id}" ${i ? "" : "disabled"} aria-label="Subir prioridade">↑</button>
-        <button class="icone" data-passo="1" data-id="${r.id}" ${i < regras.length - 1 ? "" : "disabled"} aria-label="Descer prioridade">↓</button>
+        <button class="icone" data-passo="-1" data-id="${r.id}" ${r.pos > 1 ? "" : "disabled"} aria-label="Subir prioridade">↑</button>
+        <button class="icone" data-passo="1" data-id="${r.id}" ${r.pos < regras.length ? "" : "disabled"} aria-label="Descer prioridade">↓</button>
         <button class="icone" data-editar="${r.id}">editar</button>
         <button class="icone perigo" data-apagar="${r.id}">excluir</button>
       </td>
-    </tr>`).join("") || `<tr><td colspan="5" class="fraco centro">Nenhuma regra.</td></tr>`;
-}
+    </tr>`,
+});
 
 function abrirRegra(r = {}) {
   const f = $("formRegra");
@@ -565,7 +590,6 @@ function previaRegra() {
 }
 $("formRegra").elements.padrao.addEventListener("input", previaRegra);
 $("novaRegra").addEventListener("click", () => abrirRegra());
-$("buscaRegra").addEventListener("input", renderRegras);
 $("linhasRegras").addEventListener("click", tentar(async e => {
   const b = e.target.closest("button");
   const r = b && regras.find(r => r.id === +(b.dataset.id ?? b.dataset.editar ?? b.dataset.apagar));
@@ -593,15 +617,19 @@ function mediaRecente(categoria) {
   const gs = todas.filter(ehGasto), ultimos = [...new Set(gs.map(t => t.mes))].sort().slice(-3);
   return soma(gs.filter(t => t.categoria === categoria && ultimos.includes(t.mes))) / (ultimos.length || 1);
 }
-function renderOrcamentos() {
-  $("linhasOrcamento").innerHTML = limites.map(o => `
+const renderOrcamentos = () => gradeOrcamento(limites.map(o => ({ ...o, media: mediaRecente(o.categoria) })));
+const gradeOrcamento = grade({
+  cab: "cabOrcamento", corpo: "linhasOrcamento", busca: "buscaOrcamento", chaves: { categoria: o => o.categoria.toLowerCase() },
+  ordem: { campo: "categoria", dir: 1 }, texto: o => o.categoria, colunas: 4,
+  vazio: "Nenhum limite. Defina quanto quer gastar por mês em cada categoria.",
+  linha: o => `
     <tr>
       <td><span class="tag">${esc(o.categoria)}</span></td>
       <td class="num mono">${brl(o.limite)}</td>
-      <td class="num mono fraco">${brl(mediaRecente(o.categoria))}</td>
+      <td class="num mono fraco">${brl(o.media)}</td>
       <td class="acoes"><button class="icone" data-editar="${esc(o.categoria)}">editar</button><button class="icone perigo" data-apagar="${esc(o.categoria)}">excluir</button></td>
-    </tr>`).join("") || `<tr><td colspan="4" class="fraco centro">Nenhum limite. Defina quanto quer gastar por mês em cada categoria.</td></tr>`;
-}
+    </tr>`,
+});
 function abrirOrcamento(o = {}) {
   const f = $("formOrcamento");
   $("tLimite").textContent = o.categoria ? "Editar limite" : "Novo limite";
@@ -661,17 +689,23 @@ function renderGastos() {
     <div class="kpi"><span>Pix, dinheiro, débito</span><strong>${brl(total - noCartao)}</strong><small>${total ? ((total - noCartao) / total * 100).toFixed(0) : 0}% do mês</small></div>
     <div class="kpi"><span>No cartão</span><strong>${brl(noCartao)}</strong><small>${total ? (noCartao / total * 100).toFixed(0) : 0}% do mês</small></div>
     <div class="kpi"><span>Maior categoria</span><strong>${porCat[0] ? brl(porCat[0][1]) : "—"}</strong><small>${esc(porCat[0]?.[0] ?? "nenhum gasto")}</small></div>`;
-  $("semGastos").hidden = lista.length > 0;
-  $("linhasGastos").innerHTML = lista.map(g => `
+  // origem: o filtro de cartão da grade separa por ela
+  gradeGastos(lista.map(g => ({ ...g, origem: g.cartao ?? "Pix / dinheiro / débito" })));
+}
+const gradeGastos = grade({
+  cab: "cabGastos", corpo: "linhasGastos", busca: "buscaGastos", cartao: "cartaoGastos",
+  chaves: { descricao: g => g.descricao.toLowerCase(), categoria: g => g.categoria.toLowerCase() },
+  ordem: { campo: "data", dir: -1 }, texto: g => `${g.descricao} ${g.categoria}`, colunas: 6, vazio: "Nenhum gasto com esses filtros.",
+  linha: g => `
     <tr>
       <td class="mono">${dataBr(g.data)}</td>
       <td>${esc(g.descricao)}</td>
       <td><span class="tag">${esc(g.categoria)}</span></td>
-      <td>${g.cartao ? `<span class="badge"><i class="ponto" style="--cor:${esc(g.cor)}"></i>${esc(g.cartao)}</span>` : `<span class="fraco">Pix / dinheiro / débito</span>`}</td>
+      <td>${g.cartao ? `<span class="badge"><i class="ponto" style="--cor:${esc(g.cor)}"></i>${esc(g.cartao)}</span>` : `<span class="fraco">${g.origem}</span>`}</td>
       <td class="num mono">${brl(g.valor)}</td>
       <td class="acoes"><button class="icone" data-editar="${g.id}">editar</button><button class="icone perigo" data-apagar="${g.id}">excluir</button></td>
-    </tr>`).join("");
-}
+    </tr>`,
+});
 
 function abrirGasto(g = { data: hoje() }) {
   const f = $("formGasto");
@@ -712,7 +746,13 @@ async function carregarImportacoes() {
   $("cartaoImportar").innerHTML = cartoes.filter(c => c.ativo).map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join("")
     + `<option value="">Conta corrente (sem cartão)</option>`;
   if (atual && [...$("cartaoImportar").options].some(o => o.value === atual)) $("cartaoImportar").value = atual;
-  $("linhasImportacoes").innerHTML = imps.map(i => `
+  gradeImportacoes(imps);
+}
+const gradeImportacoes = grade({
+  cab: "cabImportacoes", corpo: "linhasImportacoes", busca: "buscaImportacoes", cartao: "cartaoImportacoes",
+  chaves: { arquivo: i => (i.arquivo ?? "").toLowerCase(), gasto: i => i.gasto ?? 0, em: i => new Date(i.em).getTime() },
+  ordem: { campo: "em", dir: -1 }, texto: i => `${i.arquivo ?? ""} ${i.origem}`, colunas: 7, vazio: "Nenhuma importação com esses filtros.",
+  linha: i => `
     <tr>
       <td class="mono">${esc(i.arquivo ?? "—")}</td>
       <td><span class="badge"><i class="ponto" style="--cor:${esc(i.cor ?? cor(i.origem))}"></i>${esc(i.origem)}</span></td>
@@ -721,8 +761,8 @@ async function carregarImportacoes() {
       <td class="num mono">${brl(i.gasto ?? 0)}</td>
       <td class="fraco">${new Date(i.em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</td>
       <td class="acoes">${i.arquivo ? `<button class="icone perigo" data-arquivo="${esc(i.arquivo)}">excluir</button>` : ""}</td>
-    </tr>`).join("") || `<tr><td colspan="7" class="fraco centro">Nenhuma importação ainda.</td></tr>`;
-}
+    </tr>`,
+});
 
 function arquivosEscolhidos() {
   const fs = [...$("arquivos").files];
