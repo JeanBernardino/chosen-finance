@@ -35,6 +35,12 @@ export function parcelasPorMes(abertas) {
   return [...m].sort((a, b) => a[0].localeCompare(b[0]));
 }
 
+/** As parcelas em aberto que caem em `mes`, cada uma com `n`, o número que a parcela terá nesse mês. */
+export const parcelasDoMes = (abertas, mes) => abertas.flatMap(p => {
+  for (let i = 1; i <= p.faltam; i++) if (somarMeses(p.mes, i) === mes) return [{ ...p, n: p.parcela_atual + i }];
+  return [];
+});
+
 /**
  * Prováveis assinaturas nos últimos 6 meses de `gastos` (já sem pagamento de fatura): mesmo estabelecimento, sem ser
  * parcela, cobrado no máximo uma vez por mês (supermercado e restaurante repetem no mês), com valor parecido (a menor

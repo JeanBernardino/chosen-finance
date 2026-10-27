@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { orcamento, parcelasAbertas, parcelasPorMes, recorrentes } from "../public/analises.js";
+import { orcamento, parcelasAbertas, parcelasDoMes, parcelasPorMes, recorrentes } from "../public/analises.js";
 
 const t = (mes, descricao, valor, categoria = "Compras online", extra = {}) =>
   ({ mes, data: `${mes}-10`, descricao, valor, categoria, origem: "Nubank", ...extra });
@@ -15,6 +15,15 @@ test("parcelasAbertas junta a mesma compra e projeta o que falta mês a mês", (
     descricao: "Mp *Loja", origem: "Nubank", cor: undefined, categoria: "Compras online", valor: 100,
     parcela_atual: 3, parcela_total: 5, faltam: 2, mes: "2026-10", fim: "2026-12", restante: 200 });
   assert.deepEqual(parcelasPorMes(abertas), [["2026-11", 100], ["2026-12", 100]]);
+});
+
+test("parcelasDoMes traz só as parcelas que caem no mês, com o número que terão lá", () => {
+  const a = t("2026-12", "A", -50, "x", { parcela_atual: 1, parcela_total: 3 });
+  const b = t("2026-12", "B", -30, "x", { parcela_atual: 3, parcela_total: 4 });
+  const abertas = parcelasAbertas([a, b]);
+  assert.deepEqual(parcelasDoMes(abertas, "2027-01").map(p => [p.descricao, p.n, p.valor]).sort(), [["A", 2, 50], ["B", 4, 30]]);
+  assert.deepEqual(parcelasDoMes(abertas, "2027-02").map(p => [p.descricao, p.n]), [["A", 3]]);
+  assert.deepEqual(parcelasDoMes(abertas, "2027-03"), []);
 });
 
 test("parcelasPorMes soma compras diferentes e vira o ano", () => {

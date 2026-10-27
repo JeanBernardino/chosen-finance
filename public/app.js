@@ -1,5 +1,5 @@
 // Front: busca tudo uma vez e agrega no navegador (volume pessoal cabe com folga).
-import { orcamento, parcelasAbertas, parcelasPorMes, recorrentes, somarMeses } from "./analises.js";
+import { orcamento, parcelasAbertas, parcelasPorMes, parcelasDoMes, recorrentes } from "./analises.js";
 const FORA_DOS_GASTOS = ["Pagamento de fatura", "Transferência entre contas"];
 const $ = id => document.getElementById(id);
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format;
@@ -420,10 +420,7 @@ $("parcelasMes").addEventListener("click", e => {
   const m = e.target.closest(".coluna")?.dataset.mes;
   if (!m) return;
   $("tParcelasMes").textContent = `Parcelas de ${nomeMes(m)}`;
-  gradeParcelasMes(abertas.flatMap(p => {
-    for (let i = 1; i <= p.faltam; i++) if (somarMeses(p.mes, i) === m) return [{ ...p, n: p.parcela_atual + i }];
-    return [];
-  }));
+  gradeParcelasMes(parcelasDoMes(abertas, m));
   $("dlgParcelasMes").showModal();
 });
 
