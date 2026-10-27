@@ -1,5 +1,5 @@
 // Front: busca tudo uma vez e agrega no navegador (volume pessoal cabe com folga).
-import { orcamento, parcelasAbertas, parcelasPorMes, recorrentes } from "./analises.js";
+import { orcamento, parcelasAbertas, parcelasPorMes, recorrentes, somarMeses } from "./analises.js";
 const FORA_DOS_GASTOS = ["Pagamento de fatura", "Transferência entre contas"];
 const $ = id => document.getElementById(id);
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format;
@@ -52,6 +52,42 @@ $("tema").addEventListener("click", () => {
   rotuloTema();
 });
 rotuloTema();
+
+// ---------- grid padrão: toda tabela nova usa, para ordenar pelo cabeçalho e filtrar ----------
+// Cabeçalho com <button class="ordenar" data-ordem="campo">; `chaves`: campo -> valor de ordenação; texto começa
+// crescente, número do maior. Filtra pela busca em `texto` e, se houver o select `cartao`, pela origem.
+// Devolve a função que recebe as linhas e pinta.
+function grade({ cab, corpo, busca, cartao, chaves, ordem, texto, linha, colunas, vazio, resumo }) {
+  let lista = [];
+  const pintar = () => {
+    const q = semAcento($(busca).value.trim()), o = cartao ? $(cartao).value : "", k = chaves[ordem.campo];
+    const vis = lista.filter(x => (!o || x.origem === o) && (!q || semAcento(texto(x)).includes(q)))
+      .sort((a, b) => { const x = k(a), y = k(b); return (x < y ? -1 : x > y ? 1 : 0) * ordem.dir; });
+    for (const b of $(cab).querySelectorAll("[data-ordem]")) {
+      b.dataset.dir = b.dataset.ordem === ordem.campo ? (ordem.dir > 0 ? "asc" : "desc") : "";
+      b.closest("th").setAttribute("aria-sort", b.dataset.dir ? (ordem.dir > 0 ? "ascending" : "descending") : "none");
+    }
+    $(corpo).innerHTML = vis.map(linha).join("") || `<tr><td colspan="${colunas}" class="fraco centro">${vazio}</td></tr>`;
+    resumo?.(vis);
+  };
+  $(cab).addEventListener("click", e => {
+    const c = e.target.closest("[data-ordem]")?.dataset.ordem;
+    if (!c) return;
+    ordem = c === ordem.campo ? { campo: c, dir: -ordem.dir } : { campo: c, dir: lista.length && typeof chaves[c](lista[0]) === "number" ? -1 : 1 };
+    pintar();
+  });
+  $(busca).addEventListener("input", pintar);
+  if (cartao) $(cartao).addEventListener("change", pintar);
+  return nova => {
+    lista = nova;
+    if (cartao) {
+      const origens = [...new Set(lista.map(x => x.origem))].sort(), atual = $(cartao).value;
+      $(cartao).innerHTML = `<option value="">Todos os cartões</option>` + origens.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+      $(cartao).value = origens.includes(atual) ? atual : "";
+    }
+    pintar();
+  };
+}
 
 // ---------- painel ----------
 async function carregar() {
@@ -314,9 +350,11 @@ for (const id of ["cmpDe", "cmpAte"]) $(id).addEventListener("change", renderCom
 // ---------- compromissos: parcelas que faltam e assinaturas ----------
 // variação contra a cobrança anterior; abaixo de 1% é câmbio ou arredondamento, não reajuste
 const reajuste = a => { const p = (a.valor - a.anterior) / a.anterior; return Math.abs(p) < 0.01 ? 0 : p; };
+let abertas = [];
 async function carregarCompromissos() {
   todas = await api("GET", "/api/transacoes");
-  const abertas = parcelasAbertas(todas), porMes = parcelasPorMes(abertas);
+  abertas = parcelasAbertas(todas);
+  const porMes = parcelasPorMes(abertas);
   const ativas = recorrentes(todas.filter(ehGasto));
   const mensal = ativas.reduce((s, a) => s + a.valor, 0);
   const subiram = ativas.filter(a => reajuste(a) > 0);
@@ -333,11 +371,11 @@ async function carregarCompromissos() {
   $("parcelasMes").hidden = !porMes.length;
   $("semParcelas").hidden = porMes.length > 0;
   $("parcelasMes").innerHTML = porMes.map(([m, v]) => `
-    <div class="coluna" title="${nomeMes(m)}: ${brl(v)}">
+    <button class="coluna" data-mes="${m}" title="${nomeMes(m)}: ${brl(v)}" aria-label="Ver parcelas de ${nomeMes(m)}: ${brl(v)}">
       <span class="valor">${brl(v).replace(/,\d\d$/, "")}</span>
       <span class="pilar cheio" style="height:${(v / topo * 100).toFixed(1)}%"></span>
       <span class="rotulo">${mesCurto(m)}</span>
-    </div>`).join("");
+    </button>`).join("");
 
   $("linhasParcelas").innerHTML = abertas.map(p => `
     <tr>
@@ -362,6 +400,32 @@ async function carregarCompromissos() {
       <td>${situacao(a)}</td>
     </tr>`).join("") || `<tr><td colspan="7" class="fraco centro">Nenhuma cobrança recorrente encontrada.</td></tr>`;
 }
+
+// clique numa coluna: as parcelas que caem naquele mês, com o nº que a parcela terá lá
+const gradeParcelasMes = grade({
+  cab: "cabParcelasMes", corpo: "linhasParcelasMes", busca: "buscaParcelasMes", cartao: "cartaoParcelasMes",
+  chaves: { descricao: p => p.descricao.toLowerCase(), origem: p => p.origem, parcela: p => p.parcela_total - p.n, valor: p => p.valor },
+  ordem: { campo: "valor", dir: -1 }, texto: p => p.descricao, colunas: 4, vazio: "Nenhuma parcela com esses filtros.",
+  linha: p => `
+    <tr>
+      <td>${esc(p.descricao)}</td>
+      <td><span class="badge">${ponto(p.origem)}${esc(p.origem)}</span></td>
+      <td class="mono">${p.n}/${p.parcela_total}</td>
+      <td class="num mono">${brl(p.valor)}</td>
+    </tr>`,
+  resumo: lista => $("totalParcelasMes").innerHTML = `<tr><td colspan="3">Total · ${lista.length} ${lista.length === 1 ? "parcela" : "parcelas"}</td>
+    <td class="num mono">${brl(lista.reduce((s, p) => s + p.valor, 0))}</td></tr>`,
+});
+$("parcelasMes").addEventListener("click", e => {
+  const m = e.target.closest(".coluna")?.dataset.mes;
+  if (!m) return;
+  $("tParcelasMes").textContent = `Parcelas de ${nomeMes(m)}`;
+  gradeParcelasMes(abertas.flatMap(p => {
+    for (let i = 1; i <= p.faltam; i++) if (somarMeses(p.mes, i) === m) return [{ ...p, n: p.parcela_atual + i }];
+    return [];
+  }));
+  $("dlgParcelasMes").showModal();
+});
 
 // ---------- novidades: notas de cada versão (CHANGELOG.md); ponto no menu enquanto houver versão não vista ----------
 let versao = "", releases = [];
@@ -433,6 +497,15 @@ $("pergunta").addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); perguntar($("pergunta").value); }
 });
 $("sugestoes").addEventListener("click", e => e.target.closest("button") && perguntar(e.target.textContent));
+// painel flutuante: abre por cima de qualquer tela, conversa continua ao navegar
+const mostrarChat = abrir => {
+  $("chatFlutuante").hidden = !abrir;
+  $("abrirChat").setAttribute("aria-expanded", abrir);
+  if (abrir) $("pergunta").focus(); else $("abrirChat").focus();
+};
+$("abrirChat").addEventListener("click", () => mostrarChat($("chatFlutuante").hidden));
+$("fecharChat").addEventListener("click", () => mostrarChat(false));
+$("chatFlutuante").addEventListener("keydown", e => e.key === "Escape" && mostrarChat(false));
 $("limparChat").addEventListener("click", () => {
   conversa = [];
   $("conversa").querySelectorAll(".msg").forEach(m => m.remove());
@@ -497,15 +570,6 @@ $("formRegra").elements.padrao.addEventListener("input", previaRegra);
 $("novaRegra").addEventListener("click", () => abrirRegra());
 $("buscaRegra").addEventListener("input", renderRegras);
 $("linhasRegras").addEventListener("click", tentar(async e => {
-// painel flutuante: abre por cima de qualquer tela, conversa continua ao navegar
-const mostrarChat = abrir => {
-  $("chatFlutuante").hidden = !abrir;
-  $("abrirChat").setAttribute("aria-expanded", abrir);
-  if (abrir) $("pergunta").focus(); else $("abrirChat").focus();
-};
-$("abrirChat").addEventListener("click", () => mostrarChat($("chatFlutuante").hidden));
-$("fecharChat").addEventListener("click", () => mostrarChat(false));
-$("chatFlutuante").addEventListener("keydown", e => e.key === "Escape" && mostrarChat(false));
   const b = e.target.closest("button");
   const r = b && regras.find(r => r.id === +(b.dataset.id ?? b.dataset.editar ?? b.dataset.apagar));
   if (!r) return;

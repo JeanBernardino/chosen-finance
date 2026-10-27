@@ -117,7 +117,7 @@
     </header>
     <div class="kpis" id="kpisCompromissos"></div>
     <article class="card">
-      <div class="card-topo"><div><h2>Parcelas por mês</h2><p class="sub">Quanto das próximas faturas já está comprometido com compras parceladas</p></div></div>
+      <div class="card-topo"><div><h2>Parcelas por mês</h2><p class="sub">Quanto das próximas faturas já está comprometido com compras parceladas. Clique num mês para ver as parcelas</p></div></div>
       <div id="parcelasMes" class="colunas"></div>
       <p id="semParcelas" class="fraco centro" hidden>Nenhuma compra parcelada em aberto.</p>
     </article>
@@ -237,6 +237,29 @@
   </section>
 </div>
 
+<dialog id="dlgParcelasMes" class="largo">
+  <div class="card-topo">
+    <h2 id="tParcelasMes"></h2>
+    <div class="filtros-grid">
+      <input type="search" id="buscaParcelasMes" placeholder="Buscar compra" aria-label="Buscar compra">
+      <select id="cartaoParcelasMes" aria-label="Filtrar cartão"></select>
+    </div>
+  </div>
+  <div class="tabela-wrap">
+    <table>
+      <thead id="cabParcelasMes"><tr>
+        <th><button class="ordenar" data-ordem="descricao">Compra</button></th>
+        <th><button class="ordenar" data-ordem="origem">Cartão</button></th>
+        <th><button class="ordenar" data-ordem="parcela">Parcela</button></th>
+        <th class="num"><button class="ordenar" data-ordem="valor">Valor</button></th>
+      </tr></thead>
+      <tbody id="linhasParcelasMes"></tbody>
+      <tfoot id="totalParcelasMes"></tfoot>
+    </table>
+  </div>
+  <form method="dialog" class="botoes"><button class="btn primary">Fechar</button></form>
+</dialog>
+
 <dialog id="dlgClassificar">
   <form method="dialog" id="formClassificar">
     <h2>Classificar</h2>
@@ -303,7 +326,6 @@
 
 <datalist id="listaCategorias"></datalist>
 <datalist id="listaBancos"><option value="Nubank"><option value="Itaú"><option value="Inter"><option value="C6"><option value="Bradesco"><option value="Santander"><option value="Banco do Brasil"><option value="Caixa"></datalist>
-<script type="module" src="app.js"></script>
 <!-- assistente: chat flutuante, disponível em qualquer tela -->
 <button class="chat-fab" id="abrirChat" aria-label="Abrir assistente" aria-expanded="false" aria-controls="chatFlutuante"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg></button>
 <section class="card chat chat-flutuante" id="chatFlutuante" role="dialog" aria-label="Assistente" hidden>
@@ -325,3 +347,4 @@
     <button class="btn primary" id="btnChat">Enviar</button>
   </form>
 </section>
+<script type="module" src="app.js"></script>
