@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { orcamento, parcelasAbertas, parcelasPorMes } from "../public/analises.js";
+import { orcamento, parcelasAbertas, parcelasPorMes, recorrentes } from "../public/analises.js";
 
 const t = (mes, descricao, valor, categoria = "Compras online", extra = {}) =>
   ({ mes, data: `${mes}-10`, descricao, valor, categoria, origem: "Nubank", ...extra });
@@ -21,6 +21,25 @@ test("parcelasPorMes soma compras diferentes e vira o ano", () => {
   const a = t("2026-12", "A", -50, "x", { parcela_atual: 1, parcela_total: 3 });
   const b = t("2026-12", "B", -30, "x", { parcela_atual: 3, parcela_total: 4 });
   assert.deepEqual(parcelasPorMes(parcelasAbertas([a, b])), [["2027-01", 80], ["2027-02", 50]]);
+});
+
+test("recorrentes acha assinatura, ignora o que repete no mês e marca alta de preço e cancelada", () => {
+  const meses = ["2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10"];
+  const gastos = [
+    ...meses.map((m, i) => t(m, "Netflix", i < 5 ? -39.9 : -44.9, "Assinaturas")),
+    ...meses.flatMap(m => [t(m, "Supermercado X", -200, "Supermercado"), t(m, "Supermercado X", -150, "Supermercado")]),
+    ...meses.slice(0, 3).map(m => t(m, "Academia", -99, "Academia")),               // parou em julho
+    t("2026-09", "Spotify", -21.9, "Assinaturas"), t("2026-10", "Spotify", -21.9, "Assinaturas"), // 2 meses basta em Assinaturas
+    t("2026-09", "Padaria", -10, "Restaurante"), t("2026-10", "Padaria", -12, "Restaurante"),   // 2 meses fora de Assinaturas não
+    ...meses.slice(3).map((m, i) => t(m, "Loja Y", [-138, -448, -90][i], "Compras")),         // valor variável não
+    t("2026-08", "Dm *Disney", -33.9, "Assinaturas"), t("2026-10", "Dm*Disney", -33.9, "Assinaturas"),
+  ];
+  const r = Object.fromEntries(recorrentes(gastos).map(a => [a.descricao, a]));
+  assert.deepEqual(Object.keys(r).sort(), ["Academia", "Dm*Disney", "Netflix", "Spotify"]);
+  assert.equal(r.Netflix.valor, 44.9);
+  assert.equal(r.Netflix.anterior, 39.9);
+  assert.equal(r.Netflix.ativa, true);
+  assert.equal(r.Academia.ativa, false);
 });
 
 test("orcamento soma por categoria com limite e ordena pelo mais estourado", () => {

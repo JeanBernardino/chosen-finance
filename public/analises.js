@@ -35,6 +35,33 @@ export function parcelasPorMes(abertas) {
   return [...m].sort((a, b) => a[0].localeCompare(b[0]));
 }
 
+/**
+ * Prováveis assinaturas nos últimos 6 meses de `gastos` (já sem pagamento de fatura): mesmo estabelecimento, sem ser
+ * parcela, cobrado no máximo uma vez por mês (supermercado e restaurante repetem no mês), com valor parecido (a menor
+ * cobrança é ao menos 75% da maior: cabe reajuste, não compra de valor variável) e em pelo menos 3 meses,
+ * ou 2 se já está na categoria Assinaturas. `ativa`: cobrada num dos 2 últimos meses com dados.
+ */
+export function recorrentes(gastos) {
+  const meses = [...new Set(gastos.map(t => t.mes))].sort().slice(-6);
+  const porLoja = new Map();
+  for (const t of gastos) {
+    if (t.parcela_total || !meses.includes(t.mes)) continue;
+    const k = estabelecimento(t.descricao).replace(/\s*\*\s*/g, "*"); // "Dm *Spotify" e "Dm*Spotify" são a mesma
+    porLoja.set(k, [...porLoja.get(k) ?? [], t]);
+  }
+  const lista = [];
+  for (const ts of porLoja.values()) {
+    const nMeses = new Set(ts.map(t => t.mes)).size;
+    ts.sort((a, b) => a.data.localeCompare(b.data));
+    const ultima = ts.at(-1), anterior = ts.at(-2);
+    const valores = ts.map(t => -t.valor);
+    if (ts.length > nMeses || nMeses < (ultima.categoria === "Assinaturas" ? 2 : 3) || Math.min(...valores) < Math.max(...valores) * 0.75) continue;
+    lista.push({ descricao: estabelecimento(ultima.descricao), categoria: ultima.categoria, origem: ultima.origem, cor: ultima.cor, valor: -ultima.valor,
+      anterior: -anterior.valor, meses: nMeses, ultimoMes: ultima.mes, ativa: ultima.mes >= meses.at(-2) });
+  }
+  return lista.sort((a, b) => b.valor - a.valor);
+}
+
 /** Orçamento do mês: quanto cada categoria com limite já gastou. `limites`: [{categoria, limite}]. */
 export const orcamento = (gastosDoMes, limites) => limites.map(({ categoria, limite }) => {
   const gasto = gastosDoMes.filter(t => t.categoria === categoria).reduce((s, t) => s - t.valor, 0);

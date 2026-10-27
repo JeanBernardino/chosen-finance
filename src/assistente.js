@@ -1,6 +1,6 @@
 // Assistente: conversa sobre os gastos com um modelo local do Ollama. Nada sai da máquina.
 import { FORA_DOS_GASTOS } from "./categorias.js";
-import { estabelecimento, parcelasAbertas, parcelasPorMes } from "../public/analises.js";
+import { estabelecimento, parcelasAbertas, parcelasPorMes, recorrentes } from "../public/analises.js";
 
 const OLLAMA = process.env.OLLAMA_URL || "http://127.0.0.1:11434";
 const MODELO = process.env.OLLAMA_MODEL || "gemma3:12b";
@@ -51,18 +51,9 @@ export function contexto(transacoes, gastosManuais, hoje = new Date().toISOStrin
     ...[...porLoja].sort((a, b) => b[1].total - a[1].total).slice(0, 30)
       .map(([k, e]) => `- ${k} [${e.categoria}]: ${brl(e.total)} em ${e.vezes} compra(s)`));
 
-  // recorrente: aparece em pelo menos 3 dos últimos meses, sem ser parcela
-  const ultimos4 = meses.slice(-4);
-  const mesesDaLoja = new Map();
-  for (const t of gastos.filter(t => !t.parcela_total && ultimos4.includes(t.mes))) {
-    const k = estabelecimento(t.descricao), e = mesesDaLoja.get(k) ?? { meses: new Set(), ultimo: t };
-    e.meses.add(t.mes);
-    if (t.data > e.ultimo.data) e.ultimo = t;
-    mesesDaLoja.set(k, e);
-  }
-  const recorrentes = [...mesesDaLoja].filter(([, e]) => e.meses.size >= 3);
-  if (recorrentes.length) linhas.push("", "## Cobranças recorrentes (prováveis assinaturas)",
-    ...recorrentes.map(([k, e]) => `- ${k} [${e.ultimo.categoria}]: ${brl(-e.ultimo.valor)} na última cobrança`));
+  const assinaturas = recorrentes(gastos).filter(r => r.ativa);
+  if (assinaturas.length) linhas.push("", "## Cobranças recorrentes (prováveis assinaturas)",
+    ...assinaturas.map(r => `- ${r.descricao} [${r.categoria}]: ${brl(r.valor)} na última cobrança`));
 
   const abertas = parcelasAbertas(transacoes);
   if (abertas.length) linhas.push("", "## Parcelamentos em aberto",

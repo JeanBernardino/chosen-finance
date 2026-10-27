@@ -1,5 +1,5 @@
 // Front: busca tudo uma vez e agrega no navegador (volume pessoal cabe com folga).
-import { orcamento, parcelasAbertas, parcelasPorMes } from "./analises.js";
+import { orcamento, parcelasAbertas, parcelasPorMes, recorrentes } from "./analises.js";
 const FORA_DOS_GASTOS = ["Pagamento de fatura", "Transferência entre contas"];
 const $ = id => document.getElementById(id);
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format;
@@ -311,16 +311,23 @@ function renderComparar() {
 }
 for (const id of ["cmpDe", "cmpAte"]) $(id).addEventListener("change", renderComparar);
 
-// ---------- compromissos: parcelas que faltam ----------
+// ---------- compromissos: parcelas que faltam e assinaturas ----------
+// variação contra a cobrança anterior; abaixo de 1% é câmbio ou arredondamento, não reajuste
+const reajuste = a => { const p = (a.valor - a.anterior) / a.anterior; return Math.abs(p) < 0.01 ? 0 : p; };
 async function carregarCompromissos() {
   todas = await api("GET", "/api/transacoes");
   const abertas = parcelasAbertas(todas), porMes = parcelasPorMes(abertas);
+  const todasRec = recorrentes(todas.filter(ehGasto)), ativas = todasRec.filter(a => a.ativa);
+  const mensal = ativas.reduce((s, a) => s + a.valor, 0);
+  const subiram = ativas.filter(a => reajuste(a) > 0);
   const proximo = porMes.find(([m]) => m >= hoje().slice(0, 7));
 
   $("kpisCompromissos").innerHTML = `
     <div class="kpi destaque"><span>Parcelas a pagar</span><strong>${brl(abertas.reduce((s, p) => s + p.restante, 0))}</strong>
       <small>${abertas.length} ${abertas.length === 1 ? "compra parcelada" : "compras parceladas"} em aberto</small></div>
-    <div class="kpi"><span>Parcelas ${proximo ? `em ${nomeMes(proximo[0])}` : "no próximo mês"}</span><strong>${brl(proximo?.[1] ?? 0)}</strong><small>já comprometido na fatura</small></div>`;
+    <div class="kpi"><span>Parcelas ${proximo ? `em ${nomeMes(proximo[0])}` : "no próximo mês"}</span><strong>${brl(proximo?.[1] ?? 0)}</strong><small>já comprometido na fatura</small></div>
+    <div class="kpi"><span>Assinaturas por mês</span><strong>${brl(mensal)}</strong><small>${brl(mensal * 12)} por ano · ${ativas.length} ativas</small></div>
+    <div class="kpi"><span>Subiram de preço</span><strong>${subiram.length}</strong><small>${esc(subiram.map(a => a.descricao).join(", ")) || "nenhuma"}</small></div>`;
 
   const topo = Math.max(...porMes.map(([, v]) => v), 1);
   $("parcelasMes").hidden = !porMes.length;
@@ -341,6 +348,21 @@ async function carregarCompromissos() {
       <td>${nomeMes(p.fim)}</td>
       <td class="num mono">${brl(p.restante)}</td>
     </tr>`).join("") || `<tr><td colspan="6" class="fraco centro">Nenhuma compra parcelada em aberto.</td></tr>`;
+
+  // ativas primeiro; a que parou de cobrar fica no fim, para conferir se foi cancelada mesmo
+  const situacao = a => !a.ativa ? `<span class="fraco">sem cobrança desde ${nomeMes(a.ultimoMes)}</span>`
+    : reajuste(a) > 0 ? `<span class="delta sobe">▲ subiu de ${brl(a.anterior)}</span>`
+    : reajuste(a) < 0 ? `<span class="delta desce">▼ caiu de ${brl(a.anterior)}</span>` : "Ativa";
+  $("linhasAssinaturas").innerHTML = [...ativas, ...todasRec.filter(a => !a.ativa)].map(a => `
+    <tr>
+      <td>${esc(a.descricao)}</td>
+      <td><span class="tag">${esc(a.categoria)}</span></td>
+      <td><span class="badge">${ponto(a.origem)}${esc(a.origem)}</span></td>
+      <td class="num mono">${a.meses}</td>
+      <td class="num mono">${brl(a.valor)}</td>
+      <td class="num mono ${a.ativa ? "" : "fraco"}">${brl(a.valor * 12)}</td>
+      <td>${situacao(a)}</td>
+    </tr>`).join("") || `<tr><td colspan="7" class="fraco centro">Nenhuma cobrança recorrente encontrada.</td></tr>`;
 }
 
 // ---------- novidades: notas de cada versão (CHANGELOG.md); ponto no menu enquanto houver versão não vista ----------

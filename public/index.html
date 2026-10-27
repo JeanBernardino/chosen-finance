@@ -114,7 +114,7 @@
 
   <section data-view="compromissos" hidden>
     <header class="cabecalho">
-      <div><h1>Compromissos</h1><p class="sub">O que já está contratado para os próximos meses: parcelas que faltam em cada compra parcelada.</p></div>
+      <div><h1>Compromissos</h1><p class="sub">O que já está contratado para os próximos meses: parcelas que faltam e assinaturas.</p></div>
     </header>
     <div class="kpis" id="kpisCompromissos"></div>
     <article class="card">
@@ -128,6 +128,15 @@
         <table>
           <thead><tr><th>Compra</th><th>Cartão</th><th>Parcela</th><th class="num">Por mês</th><th>Última em</th><th class="num">Falta pagar</th></tr></thead>
           <tbody id="linhasParcelas"></tbody>
+        </table>
+      </div>
+    </article>
+    <article class="card">
+      <div class="card-topo"><div><h2>Assinaturas e cobranças recorrentes</h2><p class="sub">Cobradas uma vez por mês em pelo menos 3 dos últimos 6 meses (2, se já estão em Assinaturas)</p></div></div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Estabelecimento</th><th>Categoria</th><th>Cartão</th><th class="num">Meses</th><th class="num">Por mês</th><th class="num">Por ano</th><th>Situação</th></tr></thead>
+          <tbody id="linhasAssinaturas"></tbody>
         </table>
       </div>
     </article>
