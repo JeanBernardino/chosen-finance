@@ -3,6 +3,14 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.8.0] - 2026-10-27
+
+### Melhorado
+- **Ordenar e filtrar em todas as tabelas:** parcelamentos, assinaturas, gastos manuais, histórico de importações,
+  regras de categoria, orçamento e o comparativo por categoria agora ordenam clicando no cabeçalho e têm busca.
+  Onde há cartão, dá para filtrar por ele também.
+- **Comparar:** a linha de total da tabela por categoria soma só as categorias visíveis na busca.
+
 ## [0.7.0] - 2026-10-27
 
 ### Novo
