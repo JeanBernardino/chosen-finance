@@ -71,6 +71,15 @@ const rotas = {
     return db.salvarGasto(pool, { id: idOuNulo(g.id), data: g.data, descricao, valor, categoria, cartao_id: idOuNulo(g.cartao_id) });
   },
   "DELETE /api/gastos": async (req, url) => ({ apagados: await db.apagarGasto(pool, idOuNulo(url.searchParams.get("id"))) }),
+  "GET /api/orcamentos": () => db.orcamentos(pool),
+  "POST /api/orcamentos": async req => {
+    const o = JSON.parse(await corpo(req));
+    const categoria = texto(o.categoria), limite = Number(o.limite);
+    if (!categoria) throw invalido("categoria é obrigatória");
+    if (!(limite > 0) || limite >= 1e10) throw invalido("limite deve ser maior que zero");
+    return db.salvarOrcamento(pool, { categoria, limite });
+  },
+  "DELETE /api/orcamentos": async (req, url) => ({ apagados: await db.apagarOrcamento(pool, url.searchParams.get("categoria") ?? "") }),
   "GET /api/regras": () => db.listaRegras(pool),
   // sem id: regra nova, vence todas as outras; com id: edita mantendo a prioridade
   "POST /api/regras": async req => {

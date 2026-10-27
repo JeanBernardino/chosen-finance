@@ -43,7 +43,10 @@ export async function migrar(db) {
       valor     numeric(12,2) not null check (valor > 0),  -- positivo = quanto saiu
       categoria text not null,
       cartao_id int references cartao,                       -- só informativo: o painel é das faturas
-      criado_em timestamptz not null default now());`);
+      criado_em timestamptz not null default now());
+    create table if not exists orcamento (
+      categoria text primary key,
+      limite    numeric(12,2) not null check (limite > 0));  -- por mês, sobre os gastos das faturas`);
   if (nova) await salvarRegras(db, REGRAS_PADRAO);
   // cartões que já vinham das importações antes do cadastro existir
   await db.query(`
@@ -115,6 +118,14 @@ export async function salvarGasto(db, { id, data, descricao, valor, categoria, c
 }
 
 export const apagarGasto = async (db, id) => (await db.query("delete from gasto_manual where id = $1", [id])).rowCount;
+
+export const orcamentos = async db => (await db.query("select categoria, limite from orcamento order by categoria")).rows;
+
+export const salvarOrcamento = async (db, { categoria, limite }) => (await db.query(
+  "insert into orcamento (categoria, limite) values ($1, $2) on conflict (categoria) do update set limite = excluded.limite returning *",
+  [categoria, limite])).rows[0];
+
+export const apagarOrcamento = async (db, categoria) => (await db.query("delete from orcamento where categoria = $1", [categoria])).rowCount;
 
 export const regras = async db =>
   (await db.query("select padrao, categoria from regra order by prioridade")).rows.map(r => [r.padrao, r.categoria]);

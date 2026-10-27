@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parcelasAbertas, parcelasPorMes } from "../public/analises.js";
+import { orcamento, parcelasAbertas, parcelasPorMes } from "../public/analises.js";
 
 const t = (mes, descricao, valor, categoria = "Compras online", extra = {}) =>
   ({ mes, data: `${mes}-10`, descricao, valor, categoria, origem: "Nubank", ...extra });
@@ -21,4 +21,13 @@ test("parcelasPorMes soma compras diferentes e vira o ano", () => {
   const a = t("2026-12", "A", -50, "x", { parcela_atual: 1, parcela_total: 3 });
   const b = t("2026-12", "B", -30, "x", { parcela_atual: 3, parcela_total: 4 });
   assert.deepEqual(parcelasPorMes(parcelasAbertas([a, b])), [["2027-01", 80], ["2027-02", 50]]);
+});
+
+test("orcamento soma por categoria com limite e ordena pelo mais estourado", () => {
+  const doMes = [t("2026-10", "a", -300, "Restaurante"), t("2026-10", "b", -250, "Restaurante"), t("2026-10", "c", -100, "Mercado")];
+  assert.deepEqual(orcamento(doMes, [{ categoria: "Mercado", limite: 400 }, { categoria: "Restaurante", limite: 500 }, { categoria: "Lazer", limite: 100 }]), [
+    { categoria: "Restaurante", limite: 500, gasto: 550, pct: 110 },
+    { categoria: "Mercado", limite: 400, gasto: 100, pct: 25 },
+    { categoria: "Lazer", limite: 100, gasto: 0, pct: 0 },
+  ]);
 });

@@ -1,5 +1,5 @@
 // Front: busca tudo uma vez e agrega no navegador (volume pessoal cabe com folga).
-import { parcelasAbertas, parcelasPorMes } from "./analises.js";
+import { orcamento, parcelasAbertas, parcelasPorMes } from "./analises.js";
 const FORA_DOS_GASTOS = ["Pagamento de fatura", "Transferência entre contas"];
 const $ = id => document.getElementById(id);
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format;
@@ -14,7 +14,7 @@ const hoje = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const semAcento = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-let todas = [], cartoes = [], gastos = [], categoriaAtiva = null;
+let todas = [], cartoes = [], gastos = [], limites = [], categoriaAtiva = null;
 
 async function api(metodo, url, corpo) {
   const r = await fetch(url, { method: metodo, body: corpo });
@@ -55,7 +55,7 @@ rotuloTema();
 
 // ---------- painel ----------
 async function carregar() {
-  [todas, cartoes] = await Promise.all([api("GET", "/api/transacoes"), api("GET", "/api/cartoes")]);
+  [todas, cartoes, limites] = await Promise.all([api("GET", "/api/transacoes"), api("GET", "/api/cartoes"), api("GET", "/api/orcamentos")]);
   // mês atual sempre na lista e selecionado ao abrir; depois mantém a escolha do usuário
   const meses = [...new Set([hoje().slice(0, 7), ...todas.map(t => t.mes)])].sort().reverse();
   const atual = $("mes").options.length ? $("mes").value : hoje().slice(0, 7);
@@ -105,6 +105,18 @@ function render() {
       <small>${total ? ((porOrigem.get(o) ?? 0) / total * 100).toFixed(0) : 0}% do gasto</small></div>`).join("")}
     <div class="kpi"><span>Parcelas a pagar</span><strong>${brl(parcelasAbertas(todas).reduce((s, p) => s + p.restante, 0))}</strong><small><a href="#compromissos">ver mês a mês</a></small></div>
     <div class="kpi"><span>Sem categoria</span><strong>${brl(soma(sem))}</strong><small>${sem.length} lançamentos para classificar</small></div>`;
+  // limite é mensal: o orçamento só aparece com um mês escolhido
+  const orc = mes ? orcamento(gastosF, limites) : [];
+  const alerta = orc.filter(o => o.pct >= 80).length;
+  $("cardOrcamento").hidden = !orc.length;
+  $("tOrcamento").textContent = mes ? `Orçamento de ${nomeMes(mes)}` : "Orçamento";
+  $("resumoOrcamento").textContent = alerta ? `${alerta} ${alerta > 1 ? "categorias passaram" : "categoria passou"} de 80% do limite` : "Todas as categorias abaixo de 80% do limite";
+  $("orcamento").innerHTML = orc.map(o => `
+    <li><button class="barra ${o.pct > 100 ? "estourou" : o.pct >= 80 ? "alerta" : ""} ${o.categoria === categoriaAtiva ? "ativa" : ""}" data-categoria="${esc(o.categoria)}">
+      <span class="rotulo">${esc(o.categoria)}</span>
+      <span class="valor">${brl(o.gasto)} de ${brl(o.limite)} · ${o.pct.toFixed(0)}% · ${o.gasto > o.limite ? `passou ${brl(o.gasto - o.limite)}` : `faltam ${brl(o.limite - o.gasto)}`}</span>
+      <span class="trilho"><span style="width:${Math.min(o.pct, 100).toFixed(2)}%"></span></span>
+    </button></li>`).join("");
   $("tCategoria").textContent = `${titulo} por categoria`;
   $("tMes").textContent = `${titulo} por mês`;
 
@@ -209,7 +221,7 @@ $("cabLinhas").addEventListener("click", e => {
   ordem = c === ordem.campo ? { campo: c, dir: -ordem.dir } : { campo: c, dir: ["descricao", "origem", "categoria"].includes(c) ? 1 : -1 };
   render();
 });
-$("categorias").addEventListener("click", e => {
+for (const el of [$("categorias"), $("orcamento")]) el.addEventListener("click", e => {
   const c = e.target.closest("[data-categoria]")?.dataset.categoria;
   if (!c) return;
   categoriaAtiva = categoriaAtiva === c ? null : c;
@@ -412,9 +424,10 @@ let regras = [];
 const casa = (padrao, descricao) => { try { return new RegExp(padrao, "i").test(descricao); } catch { return false; } };
 
 async function carregarRegras() {
-  [regras, todas] = await Promise.all([api("GET", "/api/regras"), api("GET", "/api/transacoes")]);
+  [regras, todas, limites] = await Promise.all([api("GET", "/api/regras"), api("GET", "/api/transacoes"), api("GET", "/api/orcamentos")]);
   atualizarCategorias();
   renderRegras();
+  renderOrcamentos();
 }
 
 function renderRegras() {
@@ -481,6 +494,54 @@ $("dlgRegra").addEventListener("close", tentar(async () => {
   const f = $("formRegra");
   await json("POST", "/api/regras", { id: f.dataset.id || null, padrao: f.elements.padrao.value, categoria: f.elements.categoria.value });
   status("Regra salva.");
+  await carregarRegras();
+}));
+
+// ---------- configurações: orçamento por categoria ----------
+// média dos 3 últimos meses com fatura, para ajudar a escolher o limite
+function mediaRecente(categoria) {
+  const gs = todas.filter(ehGasto), ultimos = [...new Set(gs.map(t => t.mes))].sort().slice(-3);
+  return soma(gs.filter(t => t.categoria === categoria && ultimos.includes(t.mes))) / (ultimos.length || 1);
+}
+function renderOrcamentos() {
+  $("linhasOrcamento").innerHTML = limites.map(o => `
+    <tr>
+      <td><span class="tag">${esc(o.categoria)}</span></td>
+      <td class="num mono">${brl(o.limite)}</td>
+      <td class="num mono fraco">${brl(mediaRecente(o.categoria))}</td>
+      <td class="acoes"><button class="icone" data-editar="${esc(o.categoria)}">editar</button><button class="icone perigo" data-apagar="${esc(o.categoria)}">excluir</button></td>
+    </tr>`).join("") || `<tr><td colspan="4" class="fraco centro">Nenhum limite. Defina quanto quer gastar por mês em cada categoria.</td></tr>`;
+}
+function abrirOrcamento(o = {}) {
+  const f = $("formOrcamento");
+  $("tLimite").textContent = o.categoria ? "Editar limite" : "Novo limite";
+  f.elements.categoria.value = o.categoria ?? "";
+  f.elements.categoria.readOnly = !!o.categoria; // a categoria é a chave: trocar é excluir e criar outro
+  f.elements.limite.value = o.limite ?? "";
+  previaOrcamento();
+  $("dlgOrcamento").showModal();
+  if (o.categoria) f.elements.limite.focus();
+}
+function previaOrcamento() {
+  const c = $("formOrcamento").elements.categoria.value.trim();
+  $("previaOrcamento").textContent = c ? `Média de ${c} nos últimos 3 meses: ${brl(mediaRecente(c))}.` : "";
+}
+$("formOrcamento").elements.categoria.addEventListener("input", previaOrcamento);
+$("novoOrcamento").addEventListener("click", () => abrirOrcamento());
+$("linhasOrcamento").addEventListener("click", tentar(async e => {
+  const b = e.target.closest("button");
+  const o = b && limites.find(o => o.categoria === (b.dataset.editar ?? b.dataset.apagar));
+  if (!o) return;
+  if (b.dataset.editar) return abrirOrcamento(o);
+  if (!confirm(`Excluir o limite de ${o.categoria}?`)) return;
+  await api("DELETE", `/api/orcamentos?categoria=${encodeURIComponent(o.categoria)}`);
+  status("Limite excluído.");
+  await carregarRegras();
+}));
+$("dlgOrcamento").addEventListener("close", tentar(async () => {
+  if ($("dlgOrcamento").returnValue !== "ok") return;
+  await json("POST", "/api/orcamentos", Object.fromEntries(new FormData($("formOrcamento"))));
+  status("Limite salvo.");
   await carregarRegras();
 }));
 

@@ -45,6 +45,10 @@
 
     <div id="painel" hidden>
       <div class="kpis" id="kpis"></div>
+      <article class="card" id="cardOrcamento" hidden>
+        <div class="card-topo"><div><h2 id="tOrcamento">Orçamento</h2><p class="sub" id="resumoOrcamento"></p></div><a class="btn link" href="#config">Editar limites</a></div>
+        <ol id="orcamento" class="barras"></ol>
+      </article>
       <div class="grade">
         <article class="card">
           <div class="card-topo"><h2 id="tCategoria">Por categoria</h2><div class="legenda" id="legCategoria" data-grafico="categoria"></div></div>
@@ -222,6 +226,18 @@
         </table>
       </div>
     </article>
+    <article class="card">
+      <div class="card-topo">
+        <div><h2>Orçamento por categoria</h2><p class="sub">Limite mensal sobre os gastos das faturas. A visão geral avisa quando uma categoria passa de 80%.</p></div>
+        <button class="btn primary" id="novoOrcamento">+ Novo limite</button>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Categoria</th><th class="num">Limite por mês</th><th class="num">Média dos últimos 3 meses</th><th></th></tr></thead>
+          <tbody id="linhasOrcamento"></tbody>
+        </table>
+      </div>
+    </article>
   </section>
 
   <section data-view="cartoes" hidden>
@@ -250,6 +266,18 @@
     <label>Regex na descrição<input name="padrao" class="mono" required placeholder="Ex.: ifood|rappi"></label>
     <label>Categoria<input name="categoria" list="listaCategorias" required></label>
     <small id="previaRegra">Regra nova entra no topo da lista e vence as outras.</small>
+    <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgOrcamento">
+  <form method="dialog" id="formOrcamento">
+    <h2 id="tLimite">Novo limite</h2>
+    <div class="duas">
+      <label>Categoria<input name="categoria" list="listaCategorias" required></label>
+      <label>Limite por mês (R$)<input type="number" name="limite" min="0.01" step="0.01" inputmode="decimal" required></label>
+    </div>
+    <small id="previaOrcamento"></small>
     <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
   </form>
 </dialog>

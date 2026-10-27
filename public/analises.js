@@ -34,3 +34,9 @@ export function parcelasPorMes(abertas) {
   }
   return [...m].sort((a, b) => a[0].localeCompare(b[0]));
 }
+
+/** Orçamento do mês: quanto cada categoria com limite já gastou. `limites`: [{categoria, limite}]. */
+export const orcamento = (gastosDoMes, limites) => limites.map(({ categoria, limite }) => {
+  const gasto = gastosDoMes.filter(t => t.categoria === categoria).reduce((s, t) => s - t.valor, 0);
+  return { categoria, limite, gasto, pct: gasto * 100 / limite };
+}).sort((a, b) => b.pct - a.pct);

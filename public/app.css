@@ -76,7 +76,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .vazio h2 { color: var(--text); font-size: 16px; margin-bottom: 4px; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; min-width: 0; box-shadow: var(--sombra); }
 .card-topo { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-bottom: 14px; }
-.card-topo input { margin-left: auto; min-width: 0; }
+.card-topo input, .card-topo > div:first-child + .btn { margin-left: auto; min-width: 0; }
 .card-topo .sub { font-size: 13px; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }
 .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--sombra); }
@@ -98,6 +98,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .barra .valor { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .trilho { grid-column: 1 / -1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; display: flex; }
 .trilho span { height: 100%; }
+/* orçamento: barra única, laranja a partir de 80% do limite */
+#orcamento .trilho span { background: var(--chart); }
+#orcamento .alerta .trilho span, #orcamento .estourou .trilho span { background: var(--warn); }
+#orcamento .estourou .valor { color: var(--warn); font-weight: 600; }
 .detalhe { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* cada cartão tem sua cor em todo o app */
