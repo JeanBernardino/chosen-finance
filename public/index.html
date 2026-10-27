@@ -13,6 +13,7 @@
   <nav class="menu" aria-label="Seções">
     <a href="#painel"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4zm10 7h6V11h-6zM4 20h6v-4H4zm10-11h6V4h-6z"/></svg>Visão geral</a>
     <a href="#comparar"><svg viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3"/></svg>Comparar</a>
+    <a href="#assistente"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>Assistente</a>
     <a href="#gastos"><svg viewBox="0 0 24 24"><path d="M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2zM9 9h6M9 13h6"/></svg>Gastos manuais</a>
     <a href="#importar"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>Importar faturas</a>
     <a href="#cartoes"><svg viewBox="0 0 24 24"><path d="M3 6h18v12H3zM3 10h18M7 15h3"/></svg>Cartões</a>
@@ -104,6 +105,27 @@
         </div>
       </article>
     </div>
+  </section>
+
+  <section data-view="assistente" hidden>
+    <header class="cabecalho">
+      <div><h1>Assistente</h1><p class="sub">Converse sobre seus gastos. Roda num modelo local (Ollama): nada sai da sua máquina.</p></div>
+      <button class="btn" id="limparChat">Nova conversa</button>
+    </header>
+    <article class="card chat">
+      <div id="conversa" class="conversa" aria-live="polite">
+        <div class="sugestoes" id="sugestoes">
+          <button class="btn">Onde posso cortar gastos?</button>
+          <button class="btn">Por que gastei mais no último mês?</button>
+          <button class="btn">Quais assinaturas eu pago?</button>
+          <button class="btn">Quanto ainda devo de parcelas?</button>
+        </div>
+      </div>
+      <form id="formChat" class="enviar">
+        <textarea id="pergunta" rows="2" maxlength="4000" placeholder="Pergunte sobre suas faturas (Enter envia, Shift+Enter quebra linha)" aria-label="Pergunta" required></textarea>
+        <button class="btn primary" id="btnChat">Enviar</button>
+      </form>
+    </article>
   </section>
 
   <section data-view="novidades" hidden>

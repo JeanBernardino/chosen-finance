@@ -32,7 +32,7 @@ const tentar = fn => async (...a) => { try { await fn(...a); } catch (err) { sta
 
 // ---------- navegação e tema ----------
 const VIEWS = { painel: () => carregar(), comparar: () => carregarComparar(), gastos: () => carregarGastos(), importar: () => carregarImportacoes(), cartoes: () => carregarCartoes(),
-  config: () => carregarRegras(), novidades: () => carregarNovidades() };
+  config: () => carregarRegras(), novidades: () => carregarNovidades(), assistente: () => $("pergunta").focus() };
 function rota() {
   const v = VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : "painel";
   for (const s of document.querySelectorAll("[data-view]")) s.hidden = s.dataset.view !== v;
@@ -338,6 +338,51 @@ async function carregarNovidades() {
     || `<p class="fraco">Sem notas de versão.</p>`;
 }
 api("GET", "/api/releases").then(r => { ({ versao, releases } = r); pintarVersao(); }).catch(() => {});
+
+// ---------- assistente: chat com o modelo local ----------
+// só em memória: recarregar a página começa conversa nova
+let conversa = [];
+const bolha = (role, html) => {
+  $("conversa").insertAdjacentHTML("beforeend", `<div class="msg ${role}">${html}</div>`);
+  return $("conversa").lastElementChild;
+};
+async function perguntar(texto) {
+  if (!texto.trim() || $("btnChat").disabled) return;
+  $("sugestoes").hidden = true;
+  conversa.push({ role: "user", content: texto.trim() });
+  bolha("user", esc(texto.trim()));
+  const resposta = bolha("assistant", `<p class="fraco">Pensando…</p>`);
+  $("pergunta").value = "";
+  $("btnChat").disabled = true;
+  try {
+    const r = await fetch("/api/chat", { method: "POST", body: JSON.stringify({ mensagens: conversa }) });
+    if (!r.ok) throw new Error((await r.json()).erro);
+    const leitor = r.body.pipeThrough(new TextDecoderStream()).getReader();
+    let txt = "";
+    for (let p; !(p = await leitor.read()).done;) {
+      resposta.innerHTML = md(txt += p.value);
+      resposta.scrollIntoView({ block: "end" });
+    }
+    conversa.push({ role: "assistant", content: txt });
+  } catch (err) {
+    conversa.pop(); // pergunta sem resposta não vai no histórico
+    resposta.classList.add("erro");
+    resposta.textContent = err.message;
+  } finally {
+    $("btnChat").disabled = false;
+    $("pergunta").focus();
+  }
+}
+$("formChat").addEventListener("submit", e => { e.preventDefault(); perguntar($("pergunta").value); });
+$("pergunta").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); perguntar($("pergunta").value); }
+});
+$("sugestoes").addEventListener("click", e => e.target.closest("button") && perguntar(e.target.textContent));
+$("limparChat").addEventListener("click", () => {
+  conversa = [];
+  $("conversa").querySelectorAll(".msg").forEach(m => m.remove());
+  $("sugestoes").hidden = false;
+});
 
 // ---------- configurações: regras de categoria ----------
 let regras = [];

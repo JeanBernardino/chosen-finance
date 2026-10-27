@@ -5,6 +5,7 @@ import path from "node:path";
 import * as db from "./db.js";
 import { categorizar } from "./categorias.js";
 import { ler } from "./importadores.js";
+import { contexto, conversar, validarMensagens } from "./assistente.js";
 
 const PORT = Number(process.env.PORT || 4780);
 const PUBLIC = new URL("../public/", import.meta.url).pathname;
@@ -86,6 +87,12 @@ const rotas = {
     return { ok: true };
   },
   "DELETE /api/regras": async (req, url) => ({ apagados: await db.apagarRegra(pool, idOuNulo(url.searchParams.get("id"))) }),
+  // responde em streaming direto no res: a rota não devolve corpo
+  "POST /api/chat": async (req, url, res) => {
+    const mensagens = validarMensagens(JSON.parse(await corpo(req)).mensagens);
+    const [lista, regras, manuais] = await Promise.all([db.transacoes(pool), db.regras(pool), db.gastosManuais(pool)]);
+    await conversar(mensagens, contexto(categorizar(lista, regras), manuais), res);
+  },
 };
 
 http.createServer(async (req, res) => {
@@ -96,12 +103,16 @@ http.createServer(async (req, res) => {
   };
   try {
     const rota = rotas[`${req.method} ${url.pathname}`];
-    if (rota) return send(200, await rota(req, url));
+    if (rota) {
+      const r = await rota(req, url, res);
+      return res.headersSent || send(200, r);
+    }
     if (req.method !== "GET") return send(404, { erro: "não encontrado" });
     const arquivo = path.join(PUBLIC, path.normalize(url.pathname === "/" ? "index.html" : url.pathname));
     if (!arquivo.startsWith(PUBLIC) || !fs.existsSync(arquivo)) return send(404, "não encontrado", "text/plain");
     send(200, fs.readFileSync(arquivo), TYPES[path.extname(arquivo)] ?? "application/octet-stream");
   } catch (e) {
+    if (res.headersSent) return res.end(); // caiu no meio do streaming: só fecha
     // regex inválida e JSON malformado são erro de quem chamou; 23xxx é violação de constraint (nome repetido, data inválida...)
     const status = e.status ?? (e instanceof SyntaxError || /^(23|22)/.test(e.code ?? "") ? 400 : 500);
     send(status, { erro: e.code === "23505" ? "já existe um cadastro com esse nome" : e.message });

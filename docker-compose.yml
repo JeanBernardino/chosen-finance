@@ -1,0 +1,23 @@
+# Ollama do assistente. No Mac o container não usa a GPU: roda na CPU, mais lento que o Ollama nativo.
+# O Docker Desktop precisa de memória para o modelo (gemma3:12b pede ~10 GB): Settings > Resources.
+services:
+  ollama:
+    image: ollama/ollama:0.40.11
+    ports: ["127.0.0.1:11434:11434"] # só local: o app fala com ele em 127.0.0.1
+    volumes: [ollama:/root/.ollama]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      retries: 12
+
+  # baixa o modelo na primeira subida; nas próximas só confere e sai
+  modelo:
+    image: ollama/ollama:0.40.11
+    environment: { OLLAMA_HOST: "ollama:11434" }
+    entrypoint: ["ollama", "pull", "${OLLAMA_MODEL:-gemma3:12b}"]
+    depends_on: { ollama: { condition: service_healthy } }
+    restart: "no"
+
+volumes:
+  ollama:
