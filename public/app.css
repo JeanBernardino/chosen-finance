@@ -184,9 +184,16 @@ dialog h2 { font-size: 16px; }
 dialog label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
 dialog label.check { display: flex; align-items: center; gap: 8px; align-self: end; min-height: 34px; color: var(--text); }
 dialog small { color: var(--muted); }
-dialog.largo { width: min(760px, calc(100vw - 32px)); display: grid; gap: 14px; }
+dialog.largo { width: min(760px, calc(100vw - 32px)); }
 dialog:not([open]) { display: none; }
 dialog tfoot td { font-weight: 600; border-top: 1px solid var(--line); }
+/* layout padrão: cabeçalho e botões fixos, só o conteúdo rola */
+dialog[open] { display: flex; flex-direction: column; gap: 14px; max-height: calc(100dvh - 32px); overflow: hidden; }
+dialog > form:not(.botoes) { min-height: 0; overflow-y: auto; }
+dialog > form .botoes { position: sticky; bottom: 0; background: var(--card); padding-top: 8px; }
+dialog .tabela-wrap { flex: 1; min-height: 0; overflow: auto; }
+dialog thead th { position: sticky; top: 0; z-index: 1; background: var(--card); }
+dialog tfoot td { position: sticky; bottom: 0; background: var(--card); }
 .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .botoes { display: flex; gap: 8px; justify-content: flex-end; }
 .espaco { flex: 1; }
