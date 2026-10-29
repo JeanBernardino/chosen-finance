@@ -192,6 +192,8 @@ dialog[open] { display: flex; flex-direction: column; gap: 14px; max-height: cal
 dialog > form:not(.botoes) { min-height: 0; overflow-y: auto; }
 dialog > form .botoes { position: sticky; bottom: 0; background: var(--card); padding-top: 8px; }
 dialog .tabela-wrap { flex: 1; min-height: 0; overflow: auto; }
+/* a barra de rolagem (overlay no macOS) passa na faixa lateral, não por cima da última coluna */
+dialog > form:not(.botoes), dialog .tabela-wrap { padding-inline: 12px; margin-inline: -12px; }
 dialog thead th { position: sticky; top: 0; z-index: 1; background: var(--card); }
 dialog tfoot td { position: sticky; bottom: 0; background: var(--card); }
 .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
