@@ -3,6 +3,14 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.10.0] - 2026-10-29
+
+### Melhorado
+- **Janelas:** clicar fora de qualquer janela fecha, como Cancelar.
+
+### Corrigido
+- Fechar com Esc uma janela de cadastro (regra, limite, gasto, cartão) não salva mais de novo o que foi salvo antes.
+
 ## [0.9.0] - 2026-10-29
 
 ### Novo
