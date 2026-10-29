@@ -31,6 +31,15 @@ function status(msg, erro = false) {
 // erro de qualquer ação vira mensagem na tela
 const tentar = fn => async (...a) => { try { await fn(...a); } catch (err) { status(err.message, true); } };
 
+// Esc ou clique fora fecha qualquer dialog como cancelar: sem trocar, o returnValue ficaria com o "ok" do último salvar
+for (const d of document.querySelectorAll("dialog")) {
+  let fora = false; // só fecha se o clique começou fora: arrastar a seleção de um campo até o fundo não descarta o form
+  const noFundo = e => { const r = d.getBoundingClientRect(); return e.target === d && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom); };
+  d.addEventListener("pointerdown", e => fora = noFundo(e));
+  d.addEventListener("click", e => { if (fora && noFundo(e)) d.close("cancel"); });
+  d.addEventListener("cancel", e => { e.preventDefault(); d.close("cancel"); });
+}
+
 // ---------- navegação e tema ----------
 const VIEWS = { painel: () => carregar(), comparar: () => carregarComparar(), compromissos: () => carregarCompromissos(), gastos: () => carregarGastos(), importar: () => carregarImportacoes(), cartoes: () => carregarCartoes(),
   config: () => carregarRegras(), novidades: () => carregarNovidades() };
