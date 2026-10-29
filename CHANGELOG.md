@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.16.0] - 2026-10-29
+
+### Novo
+
+- **Ocultar valores** no menu lateral: troca todos os valores em reais da tela por `R$ •••••`, para mostrar o app a outras pessoas sem expor quanto você gasta. A escolha fica salva no navegador; clique em **Mostrar valores** para voltar.
+
 ## [0.15.0] - 2026-10-29
 
 ### Novo
