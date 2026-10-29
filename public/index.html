@@ -293,6 +293,31 @@
   <form method="dialog" class="botoes"><button class="btn primary">Fechar</button></form>
 </dialog>
 
+<dialog id="dlgEstab" class="largo">
+  <div class="card-topo">
+    <h2 id="tEstab"></h2>
+    <div class="filtros-grid">
+      <input type="search" id="buscaEstab" placeholder="Buscar estabelecimento ou categoria" aria-label="Buscar estabelecimento ou categoria">
+      <select id="cartaoEstab" aria-label="Filtrar cartão"></select>
+    </div>
+  </div>
+  <div class="tabela-wrap">
+    <table>
+      <thead id="cabEstab"><tr>
+        <th><button class="ordenar" data-ordem="descricao">Estabelecimento</button></th>
+        <th><button class="ordenar" data-ordem="categoria">Categoria</button></th>
+        <th><button class="ordenar" data-ordem="origem">Cartão</button></th>
+        <th class="num"><button class="ordenar" data-ordem="vezes">Vezes</button></th>
+        <th class="num"><button class="ordenar" data-ordem="meses">Meses</button></th>
+        <th class="num"><button class="ordenar" data-ordem="total">Total</button></th>
+      </tr></thead>
+      <tbody id="linhasEstab"></tbody>
+      <tfoot id="totalEstab"></tfoot>
+    </table>
+  </div>
+  <form method="dialog" class="botoes"><button class="btn primary">Fechar</button></form>
+</dialog>
+
 <dialog id="dlgClassificar">
   <form method="dialog" id="formClassificar">
     <h2>Classificar</h2>

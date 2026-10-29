@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { orcamento, parcelasAbertas, parcelasDoMes, parcelasPorMes, recorrentes } from "../public/analises.js";
+import { orcamento, parcelasAbertas, parcelasDoMes, parcelasPorMes, porEstabelecimento, recorrentes } from "../public/analises.js";
 
 const t = (mes, descricao, valor, categoria = "Compras online", extra = {}) =>
   ({ mes, data: `${mes}-10`, descricao, valor, categoria, origem: "Nubank", ...extra });
@@ -58,4 +58,13 @@ test("orcamento soma por categoria com limite e ordena pelo mais estourado", () 
     { categoria: "Mercado", limite: 400, gasto: 100, pct: 25 },
     { categoria: "Lazer", limite: 100, gasto: 0, pct: 0 },
   ]);
+});
+
+test("porEstabelecimento junta a mesma loja por cartão, conta vezes e meses e ordena pelo que mais repete", () => {
+  const gastos = [
+    t("2026-09", "Ifood *Pizza", -50), t("2026-09", "IFOOD * Pizza", -30), t("2026-10", "Ifood*Pizza", -20),
+    t("2026-10", "Loja X - Parcela 1/2", -300), t("2026-10", "Ifood*Pizza", -40, "Compras online", { origem: "Itaú" }),
+  ];
+  assert.deepEqual(porEstabelecimento(gastos).map(e => [e.descricao, e.origem, e.vezes, e.meses, e.total]), [
+    ["Ifood*Pizza", "Nubank", 3, 2, 100], ["Loja X", "Nubank", 1, 1, 300], ["Ifood*Pizza", "Itaú", 1, 1, 40]]);
 });

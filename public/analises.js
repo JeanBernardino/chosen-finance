@@ -75,3 +75,20 @@ export const orcamento = (gastosDoMes, limites) => limites.map(({ categoria, lim
   const gasto = gastosDoMes.filter(t => t.categoria === categoria).reduce((s, t) => s - t.valor, 0);
   return { categoria, limite, gasto, pct: gasto * 100 / limite };
 }).sort((a, b) => b.pct - a.pct);
+
+/**
+ * Gastos agrupados por estabelecimento e cartão, do que mais se repete para o que menos: quantas vezes apareceu,
+ * em quantos meses e quanto somou. Parcelas da mesma compra contam como vezes da mesma loja.
+ */
+export function porEstabelecimento(gastos) {
+  const m = new Map();
+  for (const t of gastos) {
+    const d = estabelecimento(t.descricao).replace(/\s*\*\s*/g, "*"); // "Dm *Spotify" e "Dm*Spotify" são a mesma
+    const k = `${t.origem}|${d.toLowerCase()}`;
+    const e = m.get(k) ?? m.set(k, { descricao: d, origem: t.origem, cor: t.cor, categoria: t.categoria, vezes: 0, meses: new Set(), total: 0 }).get(k);
+    e.vezes++;
+    e.meses.add(t.mes);
+    e.total -= t.valor;
+  }
+  return [...m.values()].map(e => ({ ...e, meses: e.meses.size })).sort((a, b) => b.vezes - a.vezes || b.total - a.total);
+}

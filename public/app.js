@@ -1,5 +1,5 @@
 // Front: busca tudo uma vez e agrega no navegador (volume pessoal cabe com folga).
-import { orcamento, parcelasAbertas, parcelasPorMes, parcelasDoMes, recorrentes } from "./analises.js";
+import { orcamento, parcelasAbertas, parcelasPorMes, parcelasDoMes, porEstabelecimento, recorrentes } from "./analises.js";
 const FORA_DOS_GASTOS = ["Pagamento de fatura", "Transferência entre contas"];
 const $ = id => document.getElementById(id);
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format;
@@ -325,11 +325,11 @@ function renderComparar() {
   // a variação do primeiro mês usa o mês anterior ao intervalo, quando houver
   const topo = Math.max(...valores, 1);
   $("cmpMeses").innerHTML = span.map((m, i) => `
-    <div class="coluna" title="${nomeMes(m)}: ${brl(valores[i])}">
+    <button class="coluna" data-det data-mes="${m}" title="${nomeMes(m)}: ${brl(valores[i])}" aria-label="Detalhar ${nomeMes(m)}">
       <span class="valor">${brl(valores[i]).replace(/,\d\d$/, "")}</span>
       <span class="pilar cheio" style="height:${(valores[i] / topo * 100).toFixed(1)}%"></span>
       <span class="rotulo">${mesCurto(m)}</span><span class="var">${variacao(valores[i], porMes.get(mesAnterior(m)) ?? 0)}</span>
-    </div>`).join("");
+    </button>`).join("");
 
   // categoria x mês: cada célula com a variação contra o mês anterior da mesma categoria
   const cel = new Map();
@@ -338,24 +338,53 @@ function renderComparar() {
   const v = (c, m) => cel.get(`${c}|${m}`) ?? 0;
   const cats = [...new Set(gastos.filter(t => span.includes(t.mes)).map(t => t.categoria))]
     .map(c => [c, span.reduce((s, m) => s + v(c, m), 0)]).sort((x, y) => y[1] - x[1]);
-  $("cmpBase").textContent = "Cada mês contra o anterior";
+  $("cmpBase").textContent = "Cada mês contra o anterior. Clique num valor para ver os estabelecimentos";
   $("cmpCab").innerHTML = `<tr><th><button class="ordenar" data-ordem="categoria">Categoria</button></th>${span.map(m =>
     `<th class="num"><button class="ordenar" data-ordem="${m}">${mesCurto(m)}</button></th>`).join("")}<th class="num"><button class="ordenar" data-ordem="total">Total</button></th></tr>`;
-  // cada linha leva os valores do intervalo (vals) e do mês anterior a cada um (ants); cada mês também vira campo, para ordenar
-  gradeComparar(cats.map(([c, total]) => ({ categoria: c, total, vals: span.map(m => v(c, m)), ants: span.map(m => v(c, mesAnterior(m))),
+  // cada linha leva os meses (meses), os valores do intervalo (vals) e do mês anterior a cada um (ants); cada mês também vira campo, para ordenar
+  gradeComparar(cats.map(([c, total]) => ({ categoria: c, total, meses: span, vals: span.map(m => v(c, m)), ants: span.map(m => v(c, mesAnterior(m))),
     ...Object.fromEntries(span.map(m => [m, v(c, m)])) })));
 }
-const celula = (val, ant) => `<td class="num mono">${val ? brl(val) : `<span class="fraco">—</span>`}<small>${variacao(val, ant)}</small></td>`;
+// botão que abre os estabelecimentos; sem categoria vale todas, sem mês vale o intervalo
+const detalhe = (rotulo, categoria, mes) => `<button class="detalhar" data-det${categoria ? ` data-categoria="${esc(categoria)}"` : ""}${mes ? ` data-mes="${mes}"` : ""}>${rotulo}</button>`;
+const celula = (val, ant, categoria, mes) => `<td class="num mono">${val ? detalhe(brl(val), categoria, mes) : `<span class="fraco">—</span>`}<small>${variacao(val, ant)}</small></td>`;
 const somaCol = (lista, campo, i) => lista.reduce((s, x) => s + x[campo][i], 0);
 // o total soma só as categorias visíveis, para acompanhar a busca
 const gradeComparar = grade({
   cab: "cmpCab", corpo: "cmpCategorias", busca: "buscaCmp", chaves: { categoria: x => x.categoria.toLowerCase() },
   ordem: { campo: "total", dir: -1 }, texto: x => x.categoria, vazio: "Nenhuma categoria com esses filtros.",
-  linha: x => `<tr><td>${esc(x.categoria)}</td>${x.vals.map((val, i) => celula(val, x.ants[i])).join("")}<td class="num mono">${brl(x.total)}</td></tr>`,
+  linha: x => `<tr><td>${detalhe(esc(x.categoria), x.categoria)}</td>${x.vals.map((val, i) => celula(val, x.ants[i], x.categoria, x.meses[i])).join("")}<td class="num mono">${detalhe(brl(x.total), x.categoria)}</td></tr>`,
   resumo: lista => $("cmpTotal").innerHTML = lista.length ? `<tr><td>Total</td>${lista[0].vals.map((_, i) =>
-    celula(somaCol(lista, "vals", i), somaCol(lista, "ants", i))).join("")}<td class="num mono">${brl(lista.reduce((s, x) => s + x.total, 0))}</td></tr>` : "",
+    celula(somaCol(lista, "vals", i), somaCol(lista, "ants", i), null, lista[0].meses[i])).join("")}<td class="num mono">${detalhe(brl(lista.reduce((s, x) => s + x.total, 0)))}</td></tr>` : "",
 });
 for (const id of ["cmpDe", "cmpAte"]) $(id).addEventListener("change", renderComparar);
+
+// clique numa categoria, num mês ou num total: os estabelecimentos que somaram aquilo, do que mais repete ao que menos
+const gradeEstab = grade({
+  cab: "cabEstab", corpo: "linhasEstab", busca: "buscaEstab", cartao: "cartaoEstab",
+  chaves: { descricao: e => e.descricao.toLowerCase(), categoria: e => e.categoria.toLowerCase() },
+  ordem: { campo: "vezes", dir: -1 }, texto: e => `${e.descricao} ${e.categoria}`, vazio: "Nenhum estabelecimento com esses filtros.",
+  linha: e => `
+    <tr>
+      <td>${esc(e.descricao)}</td>
+      <td>${esc(e.categoria)}</td>
+      <td><span class="badge">${ponto(e.origem)}${esc(e.origem)}</span></td>
+      <td class="num mono">${e.vezes}</td>
+      <td class="num mono">${e.meses}</td>
+      <td class="num mono">${brl(e.total)}</td>
+    </tr>`,
+  // o total acompanha a busca: buscar "ifood" soma todos os pedidos
+  resumo: lista => $("totalEstab").innerHTML = `<tr><td colspan="3">Total · ${lista.length} ${lista.length === 1 ? "estabelecimento" : "estabelecimentos"}</td>
+    <td class="num mono">${lista.reduce((s, e) => s + e.vezes, 0)}</td><td></td><td class="num mono">${brl(lista.reduce((s, e) => s + e.total, 0))}</td></tr>`,
+});
+$("cmp").addEventListener("click", e => {
+  const b = e.target.closest("[data-det]");
+  if (!b) return;
+  const { categoria, mes } = b.dataset, meses = mes ? [mes] : mesesEntre($("cmpDe").value, $("cmpAte").value);
+  $("tEstab").textContent = `${categoria ?? "Todas as categorias"} · ${mes ? nomeMes(mes) : `${nomeMes(meses[0])} a ${nomeMes(meses.at(-1))}`}`;
+  gradeEstab(porEstabelecimento(todas.filter(t => ehGasto(t) && meses.includes(t.mes) && (!categoria || t.categoria === categoria))));
+  $("dlgEstab").showModal();
+});
 
 // ---------- compromissos: parcelas que faltam e assinaturas ----------
 // variação contra a cobrança anterior; abaixo de 1% é câmbio ou arredondamento, não reajuste
