@@ -3,6 +3,14 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.9.0] - 2026-10-29
+
+### Novo
+- **Comparar por estabelecimento:** na tabela por categoria, clique numa categoria, num valor do mês ou num total para
+  ver os estabelecimentos que somaram aquele valor: quantas vezes apareceram, em quantos meses e quanto deram.
+  As colunas do gráfico "Mês a mês" abrem o mês inteiro. A busca soma o que ficou visível: buscar uma loja mostra
+  quanto você gastou nela no período.
+
 ## [0.8.0] - 2026-10-27
 
 ### Melhorado
