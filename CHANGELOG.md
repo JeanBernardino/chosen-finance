@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.14.0] - 2026-10-29
+
+### Novo
+
+- **Simular** em Compromissos agora também acrescenta: informe nome e valor por mês de uma assinatura que pretende assinar e veja o novo total. O rodapé mostra quanto o mês fica a mais ou a menos.
+
 ## [0.13.0] - 2026-10-29
 
 ### Novo
