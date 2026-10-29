@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.11.0] - 2026-10-29
+
+### Melhorado
+- **Janelas:** o título e os botões ficam sempre visíveis e só o conteúdo rola. Nas listas, o cabeçalho das colunas
+  e o total também ficam fixos: dá para fechar sem rolar até o fim.
+
 ## [0.10.0] - 2026-10-29
 
 ### Melhorado
