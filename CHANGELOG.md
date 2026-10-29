@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.17.0] - 2026-10-29
+
+### Novo
+
+- **Financiamentos** em **Compromissos**: o botão **+ Financiamento** cadastra um financiamento ou empréstimo pago fora do cartão, como o do carro, com o valor da parcela, o número de parcelas e o mês da primeira. Ele entra nas parcelas por mês, nos parcelamentos em aberto, no total de parcelas a pagar do Painel e nas respostas do assistente. Para corrigir ou excluir, use **editar** ao lado do nome na lista.
+
 ## [0.16.0] - 2026-10-29
 
 ### Novo
