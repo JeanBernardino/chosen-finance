@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.19.0] - 2026-10-29
+
+### Novo
+
+- **Pasta de entrada:** salve o `.ofx` do Nubank ou o `.pdf` da fatura do Itaú em `~/ChosenFinance/entrada` e ele é importado sozinho em alguns segundos, sem abrir a tela de importação. O cartão é escolhido pelo banco do arquivo quando há um único cartão ativo daquele banco. O arquivo importado vai para `importados/`; se não der para ler, vai para `erros/` com o motivo num `.txt` ao lado. A pasta muda com a variável `PASTA_ENTRADA`.
+
 ## [0.18.0] - 2026-10-29
 
 ### Novo
