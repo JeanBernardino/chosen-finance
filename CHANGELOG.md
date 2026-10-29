@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.15.0] - 2026-10-29
+
+### Novo
+
+- **Simular** em Parcelamentos em aberto: desmarque as compras que vai quitar e acrescente compras parceladas (valor da parcela e número de parcelas, a primeira no mês que vem). O gráfico **Parcelas por mês** mostra como ficam os próximos meses e o rodapé mostra quanto muda no total a pagar.
+
 ## [0.14.0] - 2026-10-29
 
 ### Novo
