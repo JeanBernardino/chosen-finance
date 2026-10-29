@@ -5,6 +5,7 @@ import path from "node:path";
 import * as db from "./db.js";
 import { categorizar } from "./categorias.js";
 import { ler } from "./importadores.js";
+import { cartaoDa, PASTA, vigiar } from "./entrada.js";
 import { contexto, conversar, validarMensagens } from "./assistente.js";
 
 const PORT = Number(process.env.PORT || 4780);
@@ -36,6 +37,12 @@ async function corpo(req) {
   }
   return Buffer.concat(partes);
 }
+
+vigiar(async (nome, buf) => {
+  const lidas = await ler(nome, buf);
+  if (!lidas.length) throw invalido("nenhum lançamento encontrado no arquivo (layout não reconhecido?)");
+  return { lidas: lidas.length, novas: await db.salvar(pool, lidas, cartaoDa(lidas[0].origem, await db.cartoes(pool))) };
+});
 
 const rotas = {
   "GET /api/releases": () => ({ versao: versao(), releases: releases() }),
@@ -139,4 +146,4 @@ http.createServer(async (req, res) => {
     const status = e.status ?? (e instanceof SyntaxError || /^(23|22)/.test(e.code ?? "") ? 400 : 500);
     send(status, { erro: e.code === "23505" ? "já existe um cadastro com esse nome" : e.message });
   }
-}).listen(PORT, "127.0.0.1", () => console.log(`Chosen Finance em http://127.0.0.1:${PORT}`));
+}).listen(PORT, "127.0.0.1", () => console.log(`Chosen Finance em http://127.0.0.1:${PORT} · importa sozinho o que cair em ${PASTA}`));
