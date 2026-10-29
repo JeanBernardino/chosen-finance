@@ -186,7 +186,7 @@ dialog label.check { display: flex; align-items: center; gap: 8px; align-self: e
 dialog small { color: var(--muted); }
 dialog.largo { width: min(760px, calc(100vw - 32px)); }
 dialog:not([open]) { display: none; }
-dialog tfoot td { font-weight: 600; border-top: 1px solid var(--line); }
+tfoot td { font-weight: 600; border-top: 1px solid var(--line); }
 /* layout padrão: cabeçalho e botões fixos, só o conteúdo rola */
 dialog[open] { display: flex; flex-direction: column; gap: 14px; max-height: calc(100dvh - 32px); overflow: hidden; }
 dialog > form:not(.botoes) { min-height: 0; overflow-y: auto; }
@@ -214,7 +214,6 @@ dialog tfoot td { position: sticky; bottom: 0; background: var(--card); }
 .coluna .var { font-size: 11px; white-space: nowrap; font-variant-numeric: tabular-nums; min-height: 1.5em; }
 .cmp-cat td small { display: block; font-size: 11px; }
 .cmp-cat th:first-child, .cmp-cat td:first-child { position: sticky; left: 0; background: var(--card); }
-.cmp-cat tfoot td { font-weight: 600; border-top: 1px solid var(--line); }
 
 /* novidades: versão no menu e notas de cada release */
 .versao[hidden] { display: none; }

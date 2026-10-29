@@ -441,6 +441,9 @@ const gradeParcelas = grade({
       <td>${nomeMes(p.fim)}</td>
       <td class="num mono">${brl(p.restante)}</td>
     </tr>`,
+  // o total acompanha a busca e o cartão
+  resumo: lista => $("totalParcelas").innerHTML = `<tr><td colspan="3">Total · ${lista.length} ${lista.length === 1 ? "compra" : "compras"}</td>
+    <td class="num mono">${brl(lista.reduce((s, p) => s + p.valor, 0))}</td><td></td><td class="num mono">${brl(lista.reduce((s, p) => s + p.restante, 0))}</td></tr>`,
 });
 const situacao = a => reajuste(a) > 0 ? `<span class="delta sobe">▲ subiu de ${brl(a.anterior)}</span>`
   : reajuste(a) < 0 ? `<span class="delta desce">▼ caiu de ${brl(a.anterior)}</span>` : "Ativa";
@@ -458,6 +461,9 @@ const gradeAssinaturas = grade({
       <td class="num mono">${brl(a.valor * 12)}</td>
       <td>${situacao(a)}</td>
     </tr>`,
+  resumo: lista => { const mes = lista.reduce((s, a) => s + a.valor, 0);
+    $("totalAssinaturas").innerHTML = `<tr><td colspan="4">Total · ${lista.length} ${lista.length === 1 ? "assinatura" : "assinaturas"}</td>
+      <td class="num mono">${brl(mes)}</td><td class="num mono">${brl(mes * 12)}</td><td></td></tr>`; },
 });
 
 // clique numa coluna: as parcelas que caem naquele mês, com o nº que a parcela terá lá
