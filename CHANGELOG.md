@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.18.0] - 2026-10-29
+
+### Novo
+
+- **Parcelas abatidas no fim** no cadastro de financiamento: informe quantas parcelas você quitou de trás para frente. Elas contam como pagas (a lista mostra, por exemplo, `15/48` em vez de `12/48`) e a última parcela chega mais cedo, sem mudar o valor do mês.
+
 ## [0.17.0] - 2026-10-29
 
 ### Novo
