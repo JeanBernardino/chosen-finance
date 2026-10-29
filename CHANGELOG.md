@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.13.0] - 2026-10-29
+
+### Novo
+
+- **Simular cancelamentos** em Compromissos: desmarque as assinaturas que você cancelou e veja quanto passa a gastar por mês e por ano, e quanto economiza. A simulação não altera nada e some ao recarregar a página.
+
 ## [0.12.0] - 2026-10-29
 
 ### Novo
