@@ -1,5 +1,5 @@
 // Front: busca tudo uma vez e agrega no navegador (volume pessoal cabe com folga).
-import { orcamento, parcelasAbertas, parcelasPorMes, parcelasDoMes, porEstabelecimento, recorrentes } from "./analises.js";
+import { orcamento, parcelasAbertas, parcelasPorMes, parcelasDoMes, porEstabelecimento, recorrentes, somarMeses } from "./analises.js";
 const FORA_DOS_GASTOS = ["Pagamento de fatura", "Transferência entre contas"];
 const $ = id => document.getElementById(id);
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format;
@@ -398,11 +398,45 @@ $("cmp").addEventListener("click", e => {
 // ---------- compromissos: parcelas que faltam e assinaturas ----------
 // variação contra a cobrança anterior; abaixo de 1% é câmbio ou arredondamento, não reajuste
 const reajuste = a => { const p = (a.valor - a.anterior) / a.anterior; return Math.abs(p) < 0.01 ? 0 : p; };
-let abertas = [], ativas = [];
-// simulação: as assinaturas desmarcadas (já canceladas) saem do total e as acrescentadas entram; só vale até recarregar a página
-const cortadas = new Set(), chaveSim = a => `${a.origem}|${a.descricao}`, novas = [];
-const pintarAssinaturas = () => gradeAssinaturas(simulando ? [...ativas, ...novas] : ativas);
-let simulando = false;
+let abertas = [], ativas = [], noGrafico = [];
+// simulação numa grid: desmarcar tira do total e o formulário acrescenta itens `nova`; só vale até recarregar a página
+function simulador({ botao, tabela, form, corpo, chave, novo, pintar }) {
+  const s = { ativo: false, cortadas: new Set(), novas: [] };
+  s.lista = base => s.ativo ? [...base, ...s.novas] : base;
+  s.fica = lista => s.ativo ? lista.filter(x => !s.cortadas.has(chave(x))) : lista;
+  s.classe = x => s.ativo && s.cortadas.has(chave(x)) ? "cortada" : "";
+  s.celula = x => `<td class="sim">${x.nova ? `<button class="btn link perigo" data-remover="${s.novas.indexOf(x)}" aria-label="Tirar ${esc(x.descricao)} da simulação">✕</button>`
+    : `<input type="checkbox" data-sim="${esc(chave(x))}" ${s.cortadas.has(chave(x)) ? "" : "checked"} aria-label="Manter ${esc(x.descricao)}">`}</td>`;
+  $(botao).addEventListener("click", e => {
+    s.ativo = !s.ativo;
+    e.currentTarget.setAttribute("aria-pressed", s.ativo);
+    $(tabela).classList.toggle("simulando", s.ativo);
+    $(form).hidden = !s.ativo;
+    pintar();
+  });
+  $(form).addEventListener("submit", e => {
+    e.preventDefault();
+    s.novas.push({ nova: true, origem: "Simulação", ...novo(Object.fromEntries(new FormData(e.target))) });
+    e.target.reset();
+    pintar();
+  });
+  $(corpo).addEventListener("click", e => {
+    const i = e.target.closest("[data-remover]")?.dataset.remover;
+    if (i === undefined) return;
+    s.novas.splice(i, 1);
+    pintar();
+  });
+  $(corpo).addEventListener("change", e => {
+    const k = e.target.dataset.sim;
+    if (k === undefined) return;
+    e.target.checked ? s.cortadas.delete(k) : s.cortadas.add(k);
+    pintar();
+  });
+  return s;
+}
+const diferenca = (dif, unidade = "") => Math.abs(dif) < 0.005 ? "sem mudança" : dif > 0
+  ? `<span class="delta sobe">▲ ${brl(dif)}${unidade} a mais</span>` : `<span class="delta desce">▼ economia de ${brl(-dif)}${unidade}</span>`;
+
 async function carregarCompromissos() {
   todas = await api("GET", "/api/transacoes");
   abertas = parcelasAbertas(todas);
@@ -419,7 +453,16 @@ async function carregarCompromissos() {
     <div class="kpi"><span>Assinaturas por mês</span><strong>${brl(mensal)}</strong><small>${brl(mensal * 12)} por ano · ${ativas.length} ativas</small></div>
     <div class="kpi"><span>Subiram de preço</span><strong>${subiram.length}</strong><small>${esc(subiram.map(a => a.descricao).join(", ")) || "nenhuma"}</small></div>`;
 
-  const topo = Math.max(...porMes.map(([, v]) => v), 1);
+  pintarParcelas();
+  pintarAssinaturas();
+}
+// o gráfico acompanha a simulação: sem as compras desmarcadas e com as acrescentadas
+function pintarParcelas() {
+  const lista = simParcelas.lista(abertas);
+  gradeParcelas(lista);
+  noGrafico = simParcelas.fica(lista);
+  const porMes = parcelasPorMes(noGrafico), topo = Math.max(...porMes.map(([, v]) => v), 1);
+  $("parcelasSimuladas").hidden = !simParcelas.ativo;
   $("parcelasMes").hidden = !porMes.length;
   $("semParcelas").hidden = porMes.length > 0;
   $("parcelasMes").innerHTML = porMes.map(([m, v]) => `
@@ -428,37 +471,53 @@ async function carregarCompromissos() {
       <span class="pilar cheio" style="height:${(v / topo * 100).toFixed(1)}%"></span>
       <span class="rotulo">${mesCurto(m)}</span>
     </button>`).join("");
-
-  gradeParcelas(abertas);
-  pintarAssinaturas();
 }
+const simParcelas = simulador({
+  botao: "simularParcelas", tabela: "tabelaParcelas", form: "parcelaForm", corpo: "linhasParcelas", pintar: pintarParcelas,
+  chave: p => `${p.origem}|${p.descricao}|${p.fim}|${p.parcela_total}`,
+  // shortcut: a 1ª parcela simulada cai no mês que vem; não olha o fechamento do cartão
+  novo: ({ descricao, valor, parcelas }) => { const mes = hoje().slice(0, 7), n = Number(parcelas);
+    return { descricao: descricao.trim(), valor: Number(valor), parcela_atual: 0, parcela_total: n, faltam: n, mes, fim: somarMeses(mes, n), restante: n * Number(valor) }; },
+});
 const gradeParcelas = grade({
   cab: "cabParcelas", corpo: "linhasParcelas", busca: "buscaParcelas", cartao: "cartaoParcelas",
   chaves: { descricao: p => p.descricao.toLowerCase() },
-  ordem: { campo: "restante", dir: -1 }, texto: p => p.descricao, colunas: 6, vazio: "Nenhuma compra parcelada em aberto.",
+  ordem: { campo: "restante", dir: -1 }, texto: p => p.descricao, colunas: 7, vazio: "Nenhuma compra parcelada em aberto.",
   linha: p => `
-    <tr>
+    <tr class="${simParcelas.classe(p)}">
+      ${simParcelas.celula(p)}
       <td>${esc(p.descricao)}</td>
       <td><span class="badge">${ponto(p.origem)}${esc(p.origem)}</span></td>
-      <td class="mono">${p.parcela_atual}/${p.parcela_total} <span class="fraco">· faltam ${p.faltam}</span></td>
+      <td class="mono">${p.nova ? `<span class="delta sobe">+ simulada</span> <span class="fraco">· ${p.faltam}x</span>` : `${p.parcela_atual}/${p.parcela_total} <span class="fraco">· faltam ${p.faltam}</span>`}</td>
       <td class="num mono">${brl(p.valor)}</td>
       <td>${nomeMes(p.fim)}</td>
       <td class="num mono">${brl(p.restante)}</td>
     </tr>`,
   // o total acompanha a busca e o cartão
-  resumo: lista => $("totalParcelas").innerHTML = `<tr><td colspan="3">Total · ${lista.length} ${lista.length === 1 ? "compra" : "compras"}</td>
-    <td class="num mono">${brl(lista.reduce((s, p) => s + p.valor, 0))}</td><td></td><td class="num mono">${brl(lista.reduce((s, p) => s + p.restante, 0))}</td></tr>`,
+  resumo: lista => { const reais = lista.filter(p => !p.nova), fica = simParcelas.fica(lista);
+    const mes = l => l.reduce((s, p) => s + p.valor, 0), resta = l => l.reduce((s, p) => s + p.restante, 0);
+    $("totalParcelas").innerHTML = `<tr><td class="sim"></td><td colspan="3">Total · ${reais.length} ${reais.length === 1 ? "compra" : "compras"}</td>
+      <td class="num mono">${brl(mes(reais))}</td><td></td><td class="num mono">${brl(resta(reais))}</td></tr>` + (simParcelas.ativo ? `
+      <tr><td class="sim"></td><td colspan="3">Simulado · ${fica.length} ${fica.length === 1 ? "compra" : "compras"} · ${diferenca(resta(fica) - resta(reais))}</td>
+      <td class="num mono">${brl(mes(fica))}</td><td></td><td class="num mono">${brl(resta(fica))}</td></tr>` : ""); },
 });
+
 const situacao = a => reajuste(a) > 0 ? `<span class="delta sobe">▲ subiu de ${brl(a.anterior)}</span>`
   : reajuste(a) < 0 ? `<span class="delta desce">▼ caiu de ${brl(a.anterior)}</span>` : "Ativa";
+const pintarAssinaturas = () => gradeAssinaturas(simAssinaturas.lista(ativas));
+const simAssinaturas = simulador({
+  botao: "simularAssinaturas", tabela: "tabelaAssinaturas", form: "acrescimoForm", corpo: "linhasAssinaturas", pintar: pintarAssinaturas,
+  chave: a => `${a.origem}|${a.descricao}`,
+  // anterior = valor: sem reajuste, para a ordenação por situação não dividir por zero
+  novo: ({ descricao, valor }) => ({ descricao: descricao.trim(), valor: Number(valor), anterior: Number(valor), categoria: "Assinaturas", meses: 0 }),
+});
 const gradeAssinaturas = grade({
   cab: "cabAssinaturas", corpo: "linhasAssinaturas", busca: "buscaAssinaturas", cartao: "cartaoAssinaturas",
   chaves: { descricao: a => a.descricao.toLowerCase(), ano: a => a.valor, reajuste },
   ordem: { campo: "valor", dir: -1 }, texto: a => `${a.descricao} ${a.categoria}`, colunas: 8, vazio: "Nenhuma cobrança recorrente encontrada.",
   linha: a => `
-    <tr class="${simulando && cortadas.has(chaveSim(a)) ? "cortada" : ""}">
-      <td class="sim">${a.nova ? `<button class="btn link perigo" data-remover="${novas.indexOf(a)}" aria-label="Tirar ${esc(a.descricao)} da simulação">✕</button>`
-        : `<input type="checkbox" data-sim="${esc(chaveSim(a))}" ${cortadas.has(chaveSim(a)) ? "" : "checked"} aria-label="Manter ${esc(a.descricao)}">`}</td>
+    <tr class="${simAssinaturas.classe(a)}">
+      ${simAssinaturas.celula(a)}
       <td>${esc(a.descricao)}</td>
       <td><span class="tag">${esc(a.categoria)}</span></td>
       <td><span class="badge">${ponto(a.origem)}${esc(a.origem)}</span></td>
@@ -467,41 +526,12 @@ const gradeAssinaturas = grade({
       <td class="num mono">${brl(a.valor * 12)}</td>
       <td>${a.nova ? `<span class="delta sobe">+ simulada</span>` : situacao(a)}</td>
     </tr>`,
-  resumo: lista => { const reais = lista.filter(a => !a.nova), mes = reais.reduce((s, a) => s + a.valor, 0);
-    const fica = lista.filter(a => !cortadas.has(chaveSim(a))), sim = fica.reduce((s, a) => s + a.valor, 0), dif = sim - mes;
+  resumo: lista => { const reais = lista.filter(a => !a.nova), fica = simAssinaturas.fica(lista);
+    const mes = reais.reduce((s, a) => s + a.valor, 0), sim = fica.reduce((s, a) => s + a.valor, 0);
     $("totalAssinaturas").innerHTML = `<tr><td class="sim"></td><td colspan="4">Total · ${reais.length} ${reais.length === 1 ? "assinatura" : "assinaturas"}</td>
-      <td class="num mono">${brl(mes)}</td><td class="num mono">${brl(mes * 12)}</td><td></td></tr>` + (simulando ? `
+      <td class="num mono">${brl(mes)}</td><td class="num mono">${brl(mes * 12)}</td><td></td></tr>` + (simAssinaturas.ativo ? `
       <tr><td class="sim"></td><td colspan="4">Simulado · ${fica.length} ${fica.length === 1 ? "assinatura" : "assinaturas"}</td>
-      <td class="num mono">${brl(sim)}</td><td class="num mono">${brl(sim * 12)}</td>
-      <td>${Math.abs(dif) < 0.005 ? "sem mudança" : dif > 0 ? `<span class="delta sobe">▲ ${brl(dif)}/mês a mais</span>`
-        : `<span class="delta desce">▼ economia de ${brl(-dif)}/mês</span>`}</td></tr>` : ""); },
-});
-$("simularAssinaturas").addEventListener("click", e => {
-  simulando = !simulando;
-  e.currentTarget.setAttribute("aria-pressed", simulando);
-  $("tabelaAssinaturas").classList.toggle("simulando", simulando);
-  $("acrescimoForm").hidden = !simulando;
-  pintarAssinaturas();
-});
-$("acrescimoForm").addEventListener("submit", e => {
-  e.preventDefault();
-  const valor = Number($("acrescimoValor").value);
-  // anterior = valor: sem reajuste, para a ordenação por situação não dividir por zero
-  novas.push({ nova: true, descricao: $("acrescimoNome").value.trim(), valor, anterior: valor, categoria: "Assinaturas", origem: "Simulação", meses: 0 });
-  e.target.reset();
-  pintarAssinaturas();
-});
-$("linhasAssinaturas").addEventListener("click", e => {
-  const i = e.target.closest("[data-remover]")?.dataset.remover;
-  if (i === undefined) return;
-  novas.splice(i, 1);
-  pintarAssinaturas();
-});
-$("linhasAssinaturas").addEventListener("change", e => {
-  const k = e.target.dataset.sim;
-  if (k === undefined) return;
-  e.target.checked ? cortadas.delete(k) : cortadas.add(k);
-  pintarAssinaturas();
+      <td class="num mono">${brl(sim)}</td><td class="num mono">${brl(sim * 12)}</td><td>${diferenca(sim - mes, "/mês")}</td></tr>` : ""); },
 });
 
 // clique numa coluna: as parcelas que caem naquele mês, com o nº que a parcela terá lá
@@ -523,7 +553,7 @@ $("parcelasMes").addEventListener("click", e => {
   const m = e.target.closest(".coluna")?.dataset.mes;
   if (!m) return;
   $("tParcelasMes").textContent = `Parcelas de ${nomeMes(m)}`;
-  gradeParcelasMes(parcelasDoMes(abertas, m));
+  gradeParcelasMes(parcelasDoMes(noGrafico, m));
   $("dlgParcelasMes").showModal();
 });
 
