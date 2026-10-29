@@ -523,17 +523,18 @@ function abrirFinanciamento(f = {}) {
   form.dataset.id = f.id ?? "";
   $("tFinanciamento").textContent = f.id ? "Editar financiamento" : "Novo financiamento";
   $("apagarFinanciamento").hidden = !f.id;
-  for (const k of ["descricao", "valor", "parcela_total"]) form.elements[k].value = f[k] ?? "";
+  for (const k of ["descricao", "valor", "parcela_total", "abatidas"]) form.elements[k].value = f[k] || "";
   form.elements.primeira.value = f.primeira?.slice(0, 7) ?? "";
   previaFinanciamento();
   $("dlgFinanciamento").showModal();
 }
 function previaFinanciamento() {
-  const { valor, parcela_total, primeira } = Object.fromEntries(new FormData($("formFinanciamento")));
-  const ok = /^\d{4}-\d{2}$/.test(primeira) && valor > 0 && Number.isInteger(+parcela_total) && parcela_total > 0;
-  const [p] = ok ? parcelasFinanciadas([{ descricao: "", valor, parcela_total: +parcela_total, primeira }], hoje().slice(0, 7)) : [];
+  const { valor, parcela_total, primeira, abatidas } = Object.fromEntries(new FormData($("formFinanciamento")));
+  const ok = /^\d{4}-\d{2}$/.test(primeira) && valor > 0 && Number.isInteger(+parcela_total) && parcela_total > 0
+    && Number.isInteger(+abatidas) && +abatidas >= 0 && +abatidas < +parcela_total;
+  const [p] = ok ? parcelasFinanciadas([{ descricao: "", valor, parcela_total: +parcela_total, primeira, abatidas: +abatidas }], hoje().slice(0, 7)) : [];
   $("previaFinanciamento").textContent = !ok ? ""
-    : p ? `Parcela ${p.parcela_atual} de ${p.parcela_total} neste mês · faltam ${p.faltam} (${brl(p.restante)}) · última em ${nomeMes(p.fim)}.`
+    : p ? `${p.parcela_atual} de ${p.parcela_total} pagas${p.abatidas ? ` (${p.abatidas} abatidas)` : ""} · faltam ${p.faltam} (${brl(p.restante)}) · última em ${nomeMes(p.fim)}.`
     : "Todas as parcelas já passaram: não entra nos compromissos.";
 }
 $("formFinanciamento").addEventListener("input", previaFinanciamento);

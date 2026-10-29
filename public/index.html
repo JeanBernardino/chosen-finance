@@ -392,7 +392,10 @@
       <label>Valor da parcela (R$)<input type="number" name="valor" min="0.01" step="0.01" inputmode="decimal" required></label>
       <label>Nº de parcelas<input type="number" name="parcela_total" min="1" max="600" step="1" required></label>
     </div>
-    <label>Mês da 1ª parcela<input type="month" name="primeira" pattern="\d{4}-\d{2}" placeholder="AAAA-MM" required></label>
+    <div class="duas">
+      <label>Mês da 1ª parcela<input type="month" name="primeira" pattern="\d{4}-\d{2}" placeholder="AAAA-MM" required></label>
+      <label>Parcelas abatidas no fim<input type="number" name="abatidas" min="0" max="599" step="1" placeholder="0" title="Quitadas de trás para frente: contam como pagas e antecipam a última"></label>
+    </div>
     <small id="previaFinanciamento"></small>
     <div class="botoes"><button class="btn perigo" value="apagar" formnovalidate id="apagarFinanciamento">Excluir</button><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
   </form>

@@ -52,7 +52,8 @@ export async function migrar(db) {
       descricao     text not null,
       valor         numeric(12,2) not null check (valor > 0),          -- por parcela
       parcela_total int not null check (parcela_total between 1 and 600),
-      primeira      date not null);                                   -- mês da 1ª parcela (dia 1)`);
+      primeira      date not null);                                   -- mês da 1ª parcela (dia 1)
+    alter table financiamento add column if not exists abatidas int not null default 0;  -- quitadas de trás para frente`);
   if (nova) await salvarRegras(db, REGRAS_PADRAO);
   // cartões que já vinham das importações antes do cadastro existir
   await db.query(`
@@ -135,11 +136,11 @@ export const apagarOrcamento = async (db, categoria) => (await db.query("delete 
 
 export const financiamentos = async db => (await db.query("select * from financiamento order by descricao")).rows;
 
-export async function salvarFinanciamento(db, { id, descricao, valor, parcela_total, primeira }) {
-  const v = [descricao, valor, parcela_total, primeira];
+export async function salvarFinanciamento(db, { id, descricao, valor, parcela_total, primeira, abatidas }) {
+  const v = [descricao, valor, parcela_total, primeira, abatidas];
   return (await (id
-    ? db.query("update financiamento set descricao = $1, valor = $2, parcela_total = $3, primeira = $4 where id = $5 returning *", [...v, id])
-    : db.query("insert into financiamento (descricao, valor, parcela_total, primeira) values ($1, $2, $3, $4) returning *", v))).rows[0];
+    ? db.query("update financiamento set descricao = $1, valor = $2, parcela_total = $3, primeira = $4, abatidas = $5 where id = $6 returning *", [...v, id])
+    : db.query("insert into financiamento (descricao, valor, parcela_total, primeira, abatidas) values ($1, $2, $3, $4, $5) returning *", v))).rows[0];
 }
 
 export const apagarFinanciamento = async (db, id) => (await db.query("delete from financiamento where id = $1", [id])).rowCount;

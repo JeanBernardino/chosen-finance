@@ -88,7 +88,9 @@ const rotas = {
     if (!descricao || !/^\d{4}-\d{2}$/.test(f.primeira ?? "")) throw invalido("descrição e mês da 1ª parcela são obrigatórios");
     if (!(valor > 0) || valor >= 1e10) throw invalido("valor deve ser maior que zero");
     if (!Number.isInteger(parcela_total) || parcela_total < 1 || parcela_total > 600) throw invalido("parcelas deve ser de 1 a 600");
-    return db.salvarFinanciamento(pool, { id: idOuNulo(f.id), descricao, valor, parcela_total, primeira: `${f.primeira}-01` });
+    const abatidas = Number(f.abatidas || 0);
+    if (!Number.isInteger(abatidas) || abatidas < 0 || abatidas >= parcela_total) throw invalido("parcelas abatidas deve ser de 0 a uma a menos que o total");
+    return db.salvarFinanciamento(pool, { id: idOuNulo(f.id), descricao, valor, parcela_total, primeira: `${f.primeira}-01`, abatidas });
   },
   "DELETE /api/financiamentos": async (req, url) => ({ apagados: await db.apagarFinanciamento(pool, idOuNulo(url.searchParams.get("id"))) }),
   "GET /api/regras": () => db.listaRegras(pool),

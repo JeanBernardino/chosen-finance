@@ -79,3 +79,10 @@ test("parcelasFinanciadas conta a parcela do mês como paga e some com o financi
   assert.deepEqual([f.parcela_atual, f.faltam, f.mes, f.fim], [0, 3, "2026-11", "2027-02"]);
   assert.deepEqual(parcelasPorMes([f]), [["2026-12", 200], ["2027-01", 200], ["2027-02", 200]]);
 });
+
+test("parcelasFinanciadas: abatidas no fim contam como pagas e antecipam a última, sem mudar o valor do mês", () => {
+  // 12 pagas pelo calendário (nov/25 a out/26) + 3 abatidas = 15 de 48
+  const [p] = parcelasFinanciadas([{ id: 1, descricao: "Carro", valor: 1000, parcela_total: 48, primeira: "2025-11-01", abatidas: 3 }], "2026-10");
+  assert.deepEqual([p.parcela_atual, p.faltam, p.fim, p.restante], [15, 33, "2029-07", 33000]);
+  assert.equal(parcelasPorMes([p]).at(-1)[0], "2029-07");
+});

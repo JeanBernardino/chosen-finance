@@ -27,15 +27,16 @@ export function parcelasAbertas(transacoes) {
 
 /**
  * Financiamentos cadastrados à mão (fora dos cartões) no mesmo formato de `parcelasAbertas`. A parcela de `mesAtual`
- * conta como já paga, como a da fatura do mês; `primeira` é o mês da 1ª parcela ('AAAA-MM' ou data).
+ * conta como já paga, como a da fatura do mês; `primeira` é o mês da 1ª parcela ('AAAA-MM' ou data). `abatidas` são
+ * parcelas quitadas de trás para frente: contam como pagas e encurtam o fim, sem mudar o valor do mês.
  */
 export const parcelasFinanciadas = (financiamentos, mesAtual) => financiamentos.map(f => {
-  const primeira = f.primeira.slice(0, 7), valor = Number(f.valor);
+  const primeira = f.primeira.slice(0, 7), valor = Number(f.valor), abatidas = f.abatidas ?? 0, mensais = f.parcela_total - abatidas;
   const meses = (+mesAtual.slice(0, 4) - +primeira.slice(0, 4)) * 12 + +mesAtual.slice(5, 7) - +primeira.slice(5, 7);
-  const atual = Math.min(Math.max(meses + 1, 0), f.parcela_total), faltam = f.parcela_total - atual;
+  const noMes = Math.min(Math.max(meses + 1, 0), mensais), faltam = mensais - noMes;
   return { id: f.id, financiamento: true, descricao: f.descricao, origem: "Financiamento", categoria: "Financiamento", valor,
-    parcela_atual: atual, parcela_total: f.parcela_total, faltam, mes: somarMeses(primeira, atual - 1),
-    fim: somarMeses(primeira, f.parcela_total - 1), restante: faltam * valor };
+    parcela_atual: noMes + abatidas, parcela_total: f.parcela_total, abatidas, faltam, mes: somarMeses(primeira, noMes - 1),
+    fim: somarMeses(primeira, mensais - 1), restante: faltam * valor };
 }).filter(p => p.faltam > 0);
 
 /** Quanto as parcelas em aberto cobram em cada mês futuro: [[mes, valor], ...] em ordem. */
