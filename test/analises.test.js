@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { orcamento, parcelasAbertas, parcelasDoMes, parcelasPorMes, porEstabelecimento, recorrentes } from "../public/analises.js";
+import { orcamento, parcelasAbertas, parcelasDoMes, parcelasFinanciadas, parcelasPorMes, porEstabelecimento, recorrentes } from "../public/analises.js";
 
 const t = (mes, descricao, valor, categoria = "Compras online", extra = {}) =>
   ({ mes, data: `${mes}-10`, descricao, valor, categoria, origem: "Nubank", ...extra });
@@ -67,4 +67,15 @@ test("porEstabelecimento junta a mesma loja por cartão, conta vezes e meses e o
   ];
   assert.deepEqual(porEstabelecimento(gastos).map(e => [e.descricao, e.origem, e.vezes, e.meses, e.total]), [
     ["Ifood*Pizza", "Nubank", 3, 2, 100], ["Loja X", "Nubank", 1, 1, 300], ["Ifood*Pizza", "Itaú", 1, 1, 40]]);
+});
+
+test("parcelasFinanciadas conta a parcela do mês como paga e some com o financiamento quitado", () => {
+  const carro = { id: 1, descricao: "Carro", valor: "1500.00", parcela_total: 48, primeira: "2025-03-01" };
+  const quitado = { id: 2, descricao: "Moto", valor: 300, parcela_total: 12, primeira: "2024-01-01" };
+  const futuro = { id: 3, descricao: "Reforma", valor: 200, parcela_total: 3, primeira: "2026-12" };
+  const [c, f, ...resto] = parcelasFinanciadas([carro, quitado, futuro], "2026-10");
+  assert.deepEqual(resto, []);
+  assert.deepEqual([c.parcela_atual, c.faltam, c.mes, c.fim, c.restante, c.origem], [20, 28, "2026-10", "2029-02", 42000, "Financiamento"]);
+  assert.deepEqual([f.parcela_atual, f.faltam, f.mes, f.fim], [0, 3, "2026-11", "2027-02"]);
+  assert.deepEqual(parcelasPorMes([f]), [["2026-12", 200], ["2027-01", 200], ["2027-02", 200]]);
 });

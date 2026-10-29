@@ -1,6 +1,6 @@
 // Assistente: conversa sobre os gastos com um modelo local do Ollama. Nada sai da máquina.
 import { FORA_DOS_GASTOS } from "./categorias.js";
-import { estabelecimento, parcelasAbertas, parcelasPorMes, recorrentes } from "../public/analises.js";
+import { estabelecimento, parcelasAbertas, parcelasFinanciadas, parcelasPorMes, recorrentes } from "../public/analises.js";
 
 const OLLAMA = process.env.OLLAMA_URL || "http://127.0.0.1:11434";
 const MODELO = process.env.OLLAMA_MODEL || "gemma3:12b";
@@ -19,7 +19,7 @@ function somar(lista, chave, valor) {
  * Resumo dos dados que vai no prompt. O modelo local tem pouco contexto e erra conta:
  * mandamos os números já somados em vez da lista crua de lançamentos.
  */
-export function contexto(transacoes, gastosManuais, hoje = new Date().toISOString().slice(0, 10)) {
+export function contexto(transacoes, gastosManuais, hoje = new Date().toISOString().slice(0, 10), financiamentos = []) {
   const gastos = transacoes.filter(ehGasto);
   const meses = [...new Set(gastos.map(t => t.mes))].sort().slice(-12);
   const recentes = meses.slice(-3);
@@ -55,8 +55,8 @@ export function contexto(transacoes, gastosManuais, hoje = new Date().toISOStrin
   if (assinaturas.length) linhas.push("", "## Cobranças recorrentes (prováveis assinaturas)",
     ...assinaturas.map(r => `- ${r.descricao} [${r.categoria}]: ${brl(r.valor)} na última cobrança`));
 
-  const abertas = parcelasAbertas(transacoes);
-  if (abertas.length) linhas.push("", "## Parcelamentos em aberto",
+  const abertas = [...parcelasAbertas(transacoes), ...parcelasFinanciadas(financiamentos, hoje.slice(0, 7))];
+  if (abertas.length) linhas.push("", "## Parcelamentos e financiamentos em aberto",
     ...abertas.map(p => `- ${p.descricao}: ${brl(p.valor)}/mês, faltam ${p.faltam} de ${p.parcela_total}`),
     "", "## Parcelas a pagar por mês", ...parcelasPorMes(abertas).map(([m, v]) => `- ${m}: ${brl(v)}`));
 

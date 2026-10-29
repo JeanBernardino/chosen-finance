@@ -123,17 +123,18 @@
     </header>
     <div class="kpis" id="kpisCompromissos"></div>
     <article class="card">
-      <div class="card-topo"><div><h2>Parcelas por mês <span class="tag" id="parcelasSimuladas" hidden>simulado</span></h2><p class="sub">Quanto das próximas faturas já está comprometido com compras parceladas. Clique num mês para ver as parcelas</p></div></div>
+      <div class="card-topo"><div><h2>Parcelas por mês <span class="tag" id="parcelasSimuladas" hidden>simulado</span></h2><p class="sub">Quanto dos próximos meses já está comprometido com compras parceladas e financiamentos. Clique num mês para ver as parcelas</p></div></div>
       <div id="parcelasMes" class="colunas"></div>
       <p id="semParcelas" class="fraco centro" hidden>Nenhuma compra parcelada em aberto.</p>
     </article>
     <article class="card">
       <div class="card-topo">
-        <div><h2>Parcelamentos em aberto</h2><p class="sub">Pela última parcela vista de cada compra</p></div>
+        <div><h2>Parcelamentos em aberto</h2><p class="sub">Pela última parcela vista de cada compra, mais os financiamentos cadastrados</p></div>
         <div class="filtros-grid">
           <input type="search" id="buscaParcelas" placeholder="Buscar compra" aria-label="Buscar compra">
           <select id="cartaoParcelas" aria-label="Filtrar cartão"></select>
           <button class="btn" id="simularParcelas" aria-pressed="false" title="Desmarque o que vai quitar e acrescente compras parceladas para ver como ficam os próximos meses">Simular</button>
+          <button class="btn" id="novoFinanciamento" title="Financiamento ou empréstimo pago fora do cartão, como o do carro">+ Financiamento</button>
         </div>
       </div>
       <form class="filtros-grid acrescimo" id="parcelaForm" hidden>
@@ -380,6 +381,20 @@
       <label>Pago com<select name="cartao_id" id="gastoCartao"></select></label>
     </div>
     <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgFinanciamento">
+  <form method="dialog" id="formFinanciamento">
+    <h2 id="tFinanciamento">Novo financiamento</h2>
+    <label>Descrição<input name="descricao" required maxlength="200" placeholder="Ex.: Financiamento do carro"></label>
+    <div class="duas">
+      <label>Valor da parcela (R$)<input type="number" name="valor" min="0.01" step="0.01" inputmode="decimal" required></label>
+      <label>Nº de parcelas<input type="number" name="parcela_total" min="1" max="600" step="1" required></label>
+    </div>
+    <label>Mês da 1ª parcela<input type="month" name="primeira" pattern="\d{4}-\d{2}" placeholder="AAAA-MM" required></label>
+    <small id="previaFinanciamento"></small>
+    <div class="botoes"><button class="btn perigo" value="apagar" formnovalidate id="apagarFinanciamento">Excluir</button><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
   </form>
 </dialog>
 

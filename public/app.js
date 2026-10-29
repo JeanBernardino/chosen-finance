@@ -1,5 +1,5 @@
 // Front: busca tudo uma vez e agrega no navegador (volume pessoal cabe com folga).
-import { orcamento, parcelasAbertas, parcelasPorMes, parcelasDoMes, porEstabelecimento, recorrentes, somarMeses } from "./analises.js";
+import { orcamento, parcelasAbertas, parcelasFinanciadas, parcelasPorMes, parcelasDoMes, porEstabelecimento, recorrentes, somarMeses } from "./analises.js";
 const FORA_DOS_GASTOS = ["Pagamento de fatura", "Transferência entre contas"];
 const $ = id => document.getElementById(id);
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format;
@@ -18,7 +18,9 @@ const hoje = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const semAcento = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-let todas = [], cartoes = [], gastos = [], limites = [], categoriaAtiva = null;
+let todas = [], cartoes = [], gastos = [], limites = [], financiamentos = [], categoriaAtiva = null;
+// parcelas a pagar: as compras parceladas das faturas mais os financiamentos cadastrados
+const emAberto = () => [...parcelasAbertas(todas), ...parcelasFinanciadas(financiamentos, hoje().slice(0, 7))];
 
 async function api(metodo, url, corpo) {
   const r = await fetch(url, { method: metodo, body: corpo });
@@ -114,7 +116,7 @@ function grade({ cab, corpo, busca, cartao, chaves, ordem, texto, linha, colunas
 
 // ---------- painel ----------
 async function carregar() {
-  [todas, cartoes, limites] = await Promise.all([api("GET", "/api/transacoes"), api("GET", "/api/cartoes"), api("GET", "/api/orcamentos")]);
+  [todas, cartoes, limites, financiamentos] = await Promise.all([api("GET", "/api/transacoes"), api("GET", "/api/cartoes"), api("GET", "/api/orcamentos"), api("GET", "/api/financiamentos")]);
   // mês atual sempre na lista e selecionado ao abrir; depois mantém a escolha do usuário
   const meses = [...new Set([hoje().slice(0, 7), ...todas.map(t => t.mes)])].sort().reverse();
   const atual = $("mes").options.length ? $("mes").value : hoje().slice(0, 7);
@@ -162,7 +164,7 @@ function render() {
     ${origens.map(o => `<div class="kpi origem" style="--cor:${cor(o)}">
       <span class="titulo">${ponto(o)}${esc(o)}</span><strong>${brl(porOrigem.get(o) ?? 0)}</strong>
       <small>${total ? ((porOrigem.get(o) ?? 0) / total * 100).toFixed(0) : 0}% do gasto</small></div>`).join("")}
-    <div class="kpi"><span>Parcelas a pagar</span><strong>${brl(parcelasAbertas(todas).reduce((s, p) => s + p.restante, 0))}</strong><small><a href="#compromissos">ver mês a mês</a></small></div>
+    <div class="kpi"><span>Parcelas a pagar</span><strong>${brl(emAberto().reduce((s, p) => s + p.restante, 0))}</strong><small><a href="#compromissos">ver mês a mês</a></small></div>
     <div class="kpi"><span>Sem categoria</span><strong>${brl(soma(sem))}</strong><small>${sem.length} lançamentos para classificar</small></div>`;
   // limite é mensal: o orçamento só aparece com um mês escolhido
   const orc = mes ? orcamento(gastosF, limites) : [];
@@ -451,8 +453,8 @@ const diferenca = (dif, unidade = "") => Math.abs(dif) < 0.005 ? "sem mudança" 
   ? `<span class="delta sobe">▲ ${brl(dif)}${unidade} a mais</span>` : `<span class="delta desce">▼ economia de ${brl(-dif)}${unidade}</span>`;
 
 async function carregarCompromissos() {
-  todas = await api("GET", "/api/transacoes");
-  abertas = parcelasAbertas(todas);
+  [todas, financiamentos] = await Promise.all([api("GET", "/api/transacoes"), api("GET", "/api/financiamentos")]);
+  abertas = emAberto();
   const porMes = parcelasPorMes(abertas);
   ativas = recorrentes(todas.filter(ehGasto));
   const mensal = ativas.reduce((s, a) => s + a.valor, 0);
@@ -461,8 +463,8 @@ async function carregarCompromissos() {
 
   $("kpisCompromissos").innerHTML = `
     <div class="kpi destaque"><span>Parcelas a pagar</span><strong>${brl(abertas.reduce((s, p) => s + p.restante, 0))}</strong>
-      <small>${abertas.length} ${abertas.length === 1 ? "compra parcelada" : "compras parceladas"} em aberto</small></div>
-    <div class="kpi"><span>Parcelas ${proximo ? `em ${nomeMes(proximo[0])}` : "no próximo mês"}</span><strong>${brl(proximo?.[1] ?? 0)}</strong><small>já comprometido na fatura</small></div>
+      <small>${abertas.length} ${abertas.length === 1 ? "parcelamento" : "parcelamentos"} em aberto</small></div>
+    <div class="kpi"><span>Parcelas ${proximo ? `em ${nomeMes(proximo[0])}` : "no próximo mês"}</span><strong>${brl(proximo?.[1] ?? 0)}</strong><small>já comprometido</small></div>
     <div class="kpi"><span>Assinaturas por mês</span><strong>${brl(mensal)}</strong><small>${brl(mensal * 12)} por ano · ${ativas.length} ativas</small></div>
     <div class="kpi"><span>Subiram de preço</span><strong>${subiram.length}</strong><small>${esc(subiram.map(a => a.descricao).join(", ")) || "nenhuma"}</small></div>`;
 
@@ -499,7 +501,7 @@ const gradeParcelas = grade({
   linha: p => `
     <tr class="${simParcelas.classe(p)}">
       ${simParcelas.celula(p)}
-      <td>${esc(p.descricao)}</td>
+      <td>${esc(p.descricao)}${p.financiamento ? ` <button class="icone" data-financiamento="${p.id}">editar</button>` : ""}</td>
       <td><span class="badge">${ponto(p.origem)}${esc(p.origem)}</span></td>
       <td class="mono">${p.nova ? `<span class="delta sobe">+ simulada</span> <span class="fraco">· ${p.faltam}x</span>` : `${p.parcela_atual}/${p.parcela_total} <span class="fraco">· faltam ${p.faltam}</span>`}</td>
       <td class="num mono">${brl(p.valor)}</td>
@@ -514,6 +516,44 @@ const gradeParcelas = grade({
       <tr><td class="sim"></td><td colspan="3">Simulado · ${fica.length} ${fica.length === 1 ? "compra" : "compras"} · ${diferenca(resta(fica) - resta(reais))}</td>
       <td class="num mono">${brl(mes(fica))}</td><td></td><td class="num mono">${brl(resta(fica))}</td></tr>` : ""); },
 });
+
+// financiamento: cadastrado à mão, entra nas parcelas como se fosse uma compra parcelada
+function abrirFinanciamento(f = {}) {
+  const form = $("formFinanciamento");
+  form.dataset.id = f.id ?? "";
+  $("tFinanciamento").textContent = f.id ? "Editar financiamento" : "Novo financiamento";
+  $("apagarFinanciamento").hidden = !f.id;
+  for (const k of ["descricao", "valor", "parcela_total"]) form.elements[k].value = f[k] ?? "";
+  form.elements.primeira.value = f.primeira?.slice(0, 7) ?? "";
+  previaFinanciamento();
+  $("dlgFinanciamento").showModal();
+}
+function previaFinanciamento() {
+  const { valor, parcela_total, primeira } = Object.fromEntries(new FormData($("formFinanciamento")));
+  const ok = /^\d{4}-\d{2}$/.test(primeira) && valor > 0 && Number.isInteger(+parcela_total) && parcela_total > 0;
+  const [p] = ok ? parcelasFinanciadas([{ descricao: "", valor, parcela_total: +parcela_total, primeira }], hoje().slice(0, 7)) : [];
+  $("previaFinanciamento").textContent = !ok ? ""
+    : p ? `Parcela ${p.parcela_atual} de ${p.parcela_total} neste mês · faltam ${p.faltam} (${brl(p.restante)}) · última em ${nomeMes(p.fim)}.`
+    : "Todas as parcelas já passaram: não entra nos compromissos.";
+}
+$("formFinanciamento").addEventListener("input", previaFinanciamento);
+$("novoFinanciamento").addEventListener("click", () => abrirFinanciamento());
+$("linhasParcelas").addEventListener("click", e => {
+  const id = e.target.closest("[data-financiamento]")?.dataset.financiamento;
+  if (id) abrirFinanciamento(financiamentos.find(f => f.id === +id));
+});
+$("dlgFinanciamento").addEventListener("close", tentar(async () => {
+  const r = $("dlgFinanciamento").returnValue, f = $("formFinanciamento");
+  if (r === "apagar") {
+    if (!confirm(`Excluir ${f.elements.descricao.value}?`)) return;
+    await api("DELETE", `/api/financiamentos?id=${f.dataset.id}`);
+    status("Financiamento excluído.");
+  } else if (r === "ok") {
+    await json("POST", "/api/financiamentos", { ...Object.fromEntries(new FormData(f)), id: f.dataset.id || null });
+    status("Financiamento salvo.");
+  } else return;
+  await carregarCompromissos();
+}));
 
 const situacao = a => reajuste(a) > 0 ? `<span class="delta sobe">▲ subiu de ${brl(a.anterior)}</span>`
   : reajuste(a) < 0 ? `<span class="delta desce">▼ caiu de ${brl(a.anterior)}</span>` : "Ativa";

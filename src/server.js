@@ -81,6 +81,16 @@ const rotas = {
     return db.salvarOrcamento(pool, { categoria, limite });
   },
   "DELETE /api/orcamentos": async (req, url) => ({ apagados: await db.apagarOrcamento(pool, url.searchParams.get("categoria") ?? "") }),
+  "GET /api/financiamentos": () => db.financiamentos(pool),
+  "POST /api/financiamentos": async req => {
+    const f = JSON.parse(await corpo(req));
+    const descricao = texto(f.descricao), valor = Number(f.valor), parcela_total = Number(f.parcela_total);
+    if (!descricao || !/^\d{4}-\d{2}$/.test(f.primeira ?? "")) throw invalido("descrição e mês da 1ª parcela são obrigatórios");
+    if (!(valor > 0) || valor >= 1e10) throw invalido("valor deve ser maior que zero");
+    if (!Number.isInteger(parcela_total) || parcela_total < 1 || parcela_total > 600) throw invalido("parcelas deve ser de 1 a 600");
+    return db.salvarFinanciamento(pool, { id: idOuNulo(f.id), descricao, valor, parcela_total, primeira: `${f.primeira}-01` });
+  },
+  "DELETE /api/financiamentos": async (req, url) => ({ apagados: await db.apagarFinanciamento(pool, idOuNulo(url.searchParams.get("id"))) }),
   "GET /api/regras": () => db.listaRegras(pool),
   // sem id: regra nova, vence todas as outras; com id: edita mantendo a prioridade
   "POST /api/regras": async req => {
@@ -100,8 +110,8 @@ const rotas = {
   // responde em streaming direto no res: a rota não devolve corpo
   "POST /api/chat": async (req, url, res) => {
     const mensagens = validarMensagens(JSON.parse(await corpo(req)).mensagens);
-    const [lista, regras, manuais] = await Promise.all([db.transacoes(pool), db.regras(pool), db.gastosManuais(pool)]);
-    await conversar(mensagens, contexto(categorizar(lista, regras), manuais), res);
+    const [lista, regras, manuais, fins] = await Promise.all([db.transacoes(pool), db.regras(pool), db.gastosManuais(pool), db.financiamentos(pool)]);
+    await conversar(mensagens, contexto(categorizar(lista, regras), manuais, undefined, fins), res);
   },
 };
 

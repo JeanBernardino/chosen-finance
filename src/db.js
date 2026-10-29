@@ -46,7 +46,13 @@ export async function migrar(db) {
       criado_em timestamptz not null default now());
     create table if not exists orcamento (
       categoria text primary key,
-      limite    numeric(12,2) not null check (limite > 0));  -- por mês, sobre os gastos das faturas`);
+      limite    numeric(12,2) not null check (limite > 0));  -- por mês, sobre os gastos das faturas
+    create table if not exists financiamento (
+      id            serial primary key,
+      descricao     text not null,
+      valor         numeric(12,2) not null check (valor > 0),          -- por parcela
+      parcela_total int not null check (parcela_total between 1 and 600),
+      primeira      date not null);                                   -- mês da 1ª parcela (dia 1)`);
   if (nova) await salvarRegras(db, REGRAS_PADRAO);
   // cartões que já vinham das importações antes do cadastro existir
   await db.query(`
@@ -126,6 +132,17 @@ export const salvarOrcamento = async (db, { categoria, limite }) => (await db.qu
   [categoria, limite])).rows[0];
 
 export const apagarOrcamento = async (db, categoria) => (await db.query("delete from orcamento where categoria = $1", [categoria])).rowCount;
+
+export const financiamentos = async db => (await db.query("select * from financiamento order by descricao")).rows;
+
+export async function salvarFinanciamento(db, { id, descricao, valor, parcela_total, primeira }) {
+  const v = [descricao, valor, parcela_total, primeira];
+  return (await (id
+    ? db.query("update financiamento set descricao = $1, valor = $2, parcela_total = $3, primeira = $4 where id = $5 returning *", [...v, id])
+    : db.query("insert into financiamento (descricao, valor, parcela_total, primeira) values ($1, $2, $3, $4) returning *", v))).rows[0];
+}
+
+export const apagarFinanciamento = async (db, id) => (await db.query("delete from financiamento where id = $1", [id])).rowCount;
 
 export const regras = async db =>
   (await db.query("select padrao, categoria from regra order by prioridade")).rows.map(r => [r.padrao, r.categoria]);
