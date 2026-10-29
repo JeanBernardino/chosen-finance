@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.12.0] - 2026-10-29
+
+### Novo
+- **Compromissos:** as tabelas de parcelamentos e de assinaturas ganharam uma linha de total, que acompanha a busca
+  e o filtro de cartão.
+
 ## [0.11.1] - 2026-10-29
 
 ### Corrigido
