@@ -398,12 +398,15 @@ $("cmp").addEventListener("click", e => {
 // ---------- compromissos: parcelas que faltam e assinaturas ----------
 // variação contra a cobrança anterior; abaixo de 1% é câmbio ou arredondamento, não reajuste
 const reajuste = a => { const p = (a.valor - a.anterior) / a.anterior; return Math.abs(p) < 0.01 ? 0 : p; };
-let abertas = [];
+let abertas = [], ativas = [];
+// simulação: as assinaturas desmarcadas (já canceladas) saem do total; só vale até recarregar a página
+const cortadas = new Set(), chaveSim = a => `${a.origem}|${a.descricao}`;
+let simulando = false;
 async function carregarCompromissos() {
   todas = await api("GET", "/api/transacoes");
   abertas = parcelasAbertas(todas);
   const porMes = parcelasPorMes(abertas);
-  const ativas = recorrentes(todas.filter(ehGasto));
+  ativas = recorrentes(todas.filter(ehGasto));
   const mensal = ativas.reduce((s, a) => s + a.valor, 0);
   const subiram = ativas.filter(a => reajuste(a) > 0);
   const proximo = porMes.find(([m]) => m >= hoje().slice(0, 7));
@@ -450,9 +453,10 @@ const situacao = a => reajuste(a) > 0 ? `<span class="delta sobe">▲ subiu de $
 const gradeAssinaturas = grade({
   cab: "cabAssinaturas", corpo: "linhasAssinaturas", busca: "buscaAssinaturas", cartao: "cartaoAssinaturas",
   chaves: { descricao: a => a.descricao.toLowerCase(), ano: a => a.valor, reajuste },
-  ordem: { campo: "valor", dir: -1 }, texto: a => `${a.descricao} ${a.categoria}`, colunas: 7, vazio: "Nenhuma cobrança recorrente encontrada.",
+  ordem: { campo: "valor", dir: -1 }, texto: a => `${a.descricao} ${a.categoria}`, colunas: 8, vazio: "Nenhuma cobrança recorrente encontrada.",
   linha: a => `
-    <tr>
+    <tr class="${simulando && cortadas.has(chaveSim(a)) ? "cortada" : ""}">
+      <td class="sim"><input type="checkbox" data-sim="${esc(chaveSim(a))}" ${cortadas.has(chaveSim(a)) ? "" : "checked"} aria-label="Manter ${esc(a.descricao)}"></td>
       <td>${esc(a.descricao)}</td>
       <td><span class="tag">${esc(a.categoria)}</span></td>
       <td><span class="badge">${ponto(a.origem)}${esc(a.origem)}</span></td>
@@ -462,8 +466,24 @@ const gradeAssinaturas = grade({
       <td>${situacao(a)}</td>
     </tr>`,
   resumo: lista => { const mes = lista.reduce((s, a) => s + a.valor, 0);
-    $("totalAssinaturas").innerHTML = `<tr><td colspan="4">Total · ${lista.length} ${lista.length === 1 ? "assinatura" : "assinaturas"}</td>
-      <td class="num mono">${brl(mes)}</td><td class="num mono">${brl(mes * 12)}</td><td></td></tr>`; },
+    const fica = simulando ? lista.filter(a => !cortadas.has(chaveSim(a))) : lista, sim = fica.reduce((s, a) => s + a.valor, 0);
+    $("totalAssinaturas").innerHTML = `<tr><td class="sim"></td><td colspan="4">Total · ${lista.length} ${lista.length === 1 ? "assinatura" : "assinaturas"}</td>
+      <td class="num mono">${brl(mes)}</td><td class="num mono">${brl(mes * 12)}</td><td></td></tr>` + (simulando ? `
+      <tr><td class="sim"></td><td colspan="4">Simulado · ${fica.length} ${fica.length === 1 ? "fica" : "ficam"}</td>
+      <td class="num mono">${brl(sim)}</td><td class="num mono">${brl(sim * 12)}</td>
+      <td><span class="delta desce">▼ economia de ${brl(mes - sim)}/mês</span></td></tr>` : ""); },
+});
+$("simularAssinaturas").addEventListener("click", e => {
+  simulando = !simulando;
+  e.currentTarget.setAttribute("aria-pressed", simulando);
+  $("tabelaAssinaturas").classList.toggle("simulando", simulando);
+  gradeAssinaturas(ativas);
+});
+$("linhasAssinaturas").addEventListener("change", e => {
+  const k = e.target.dataset.sim;
+  if (k === undefined) return;
+  e.target.checked ? cortadas.delete(k) : cortadas.add(k);
+  gradeAssinaturas(ativas);
 });
 
 // clique numa coluna: as parcelas que caem naquele mês, com o nº que a parcela terá lá

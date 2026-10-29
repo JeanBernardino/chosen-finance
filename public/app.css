@@ -251,3 +251,7 @@ dialog tfoot td { position: sticky; bottom: 0; background: var(--card); }
   .chat-fab { right: 16px; bottom: 16px; }
   .chat-flutuante { right: 16px; bottom: 84px; max-height: calc(100vh - 100px); }
 }
+/* simulação de cancelamentos em Compromissos: a coluna de marcar só aparece simulando */
+table:not(.simulando) .sim { display: none; }
+tr.cortada td:not(.sim) { color: var(--muted); text-decoration: line-through; }
+#simularAssinaturas[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }

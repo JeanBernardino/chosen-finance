@@ -148,11 +148,12 @@
         <div class="filtros-grid">
           <input type="search" id="buscaAssinaturas" placeholder="Buscar estabelecimento ou categoria" aria-label="Buscar estabelecimento ou categoria">
           <select id="cartaoAssinaturas" aria-label="Filtrar cartão"></select>
+          <button class="btn" id="simularAssinaturas" aria-pressed="false" title="Desmarque o que você cancelou para ver quanto vai ficar">Simular cancelamentos</button>
         </div>
       </div>
       <div class="tabela-wrap">
-        <table>
-          <thead id="cabAssinaturas"><tr><th><button class="ordenar" data-ordem="descricao">Estabelecimento</button></th><th><button class="ordenar" data-ordem="categoria">Categoria</button></th><th><button class="ordenar" data-ordem="origem">Cartão</button></th><th class="num"><button class="ordenar" data-ordem="meses">Meses</button></th><th class="num"><button class="ordenar" data-ordem="valor">Por mês</button></th><th class="num"><button class="ordenar" data-ordem="ano">Por ano</button></th><th><button class="ordenar" data-ordem="reajuste">Situação</button></th></tr></thead>
+        <table id="tabelaAssinaturas">
+          <thead id="cabAssinaturas"><tr><th class="sim" aria-label="Manter na simulação"></th><th><button class="ordenar" data-ordem="descricao">Estabelecimento</button></th><th><button class="ordenar" data-ordem="categoria">Categoria</button></th><th><button class="ordenar" data-ordem="origem">Cartão</button></th><th class="num"><button class="ordenar" data-ordem="meses">Meses</button></th><th class="num"><button class="ordenar" data-ordem="valor">Por mês</button></th><th class="num"><button class="ordenar" data-ordem="ano">Por ano</button></th><th><button class="ordenar" data-ordem="reajuste">Situação</button></th></tr></thead>
           <tbody id="linhasAssinaturas"></tbody>
           <tfoot id="totalAssinaturas"></tfoot>
         </table>
