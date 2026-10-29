@@ -2,7 +2,11 @@
 import { orcamento, parcelasAbertas, parcelasPorMes, parcelasDoMes, porEstabelecimento, recorrentes, somarMeses } from "./analises.js";
 const FORA_DOS_GASTOS = ["Pagamento de fatura", "Transferência entre contas"];
 const $ = id => document.getElementById(id);
-const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format;
+const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format;
+// modo privado: todo valor da tela passa por aqui, então mascarar aqui esconde tudo
+let privado = false;
+try { privado = localStorage.getItem("ocultar") === "1"; } catch {}
+const brl = v => privado ? "R$ •••••" : moeda(v);
 const MES_LONGO = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" });
 const MES_CURTO = new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "UTC" });
 // "Outubro 2026" nos rótulos; "out/26" no gráfico, onde o espaço é curto
@@ -61,6 +65,15 @@ $("tema").addEventListener("click", () => {
   rotuloTema();
 });
 rotuloTema();
+
+const rotuloOcultar = () => { $("ocultar").querySelector("span").textContent = privado ? "Mostrar valores" : "Ocultar valores"; $("ocultar").setAttribute("aria-pressed", privado); };
+$("ocultar").addEventListener("click", () => {
+  privado = !privado;
+  try { localStorage.setItem("ocultar", privado ? "1" : "0"); } catch {}
+  rotuloOcultar();
+  rota();
+});
+rotuloOcultar();
 
 // ---------- grid padrão: toda tabela nova usa, para ordenar pelo cabeçalho e filtrar ----------
 // Cabeçalho com <button class="ordenar" data-ordem="campo">; `chaves`: campo -> valor de ordenação (sem chave, vale
