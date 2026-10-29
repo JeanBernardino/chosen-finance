@@ -253,5 +253,7 @@ dialog tfoot td { position: sticky; bottom: 0; background: var(--card); }
 }
 /* simulação de cancelamentos em Compromissos: a coluna de marcar só aparece simulando */
 table:not(.simulando) .sim { display: none; }
+.acrescimo { margin: 0 0 12px; justify-content: flex-end; }
+.sim .btn.link { min-height: 0; }
 tr.cortada td:not(.sim) { color: var(--muted); text-decoration: line-through; }
 #simularAssinaturas[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }

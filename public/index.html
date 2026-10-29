@@ -148,9 +148,14 @@
         <div class="filtros-grid">
           <input type="search" id="buscaAssinaturas" placeholder="Buscar estabelecimento ou categoria" aria-label="Buscar estabelecimento ou categoria">
           <select id="cartaoAssinaturas" aria-label="Filtrar cartão"></select>
-          <button class="btn" id="simularAssinaturas" aria-pressed="false" title="Desmarque o que você cancelou para ver quanto vai ficar">Simular cancelamentos</button>
+          <button class="btn" id="simularAssinaturas" aria-pressed="false" title="Desmarque o que cancelou e acrescente o que vai assinar para ver quanto vai ficar">Simular</button>
         </div>
       </div>
+      <form class="filtros-grid acrescimo" id="acrescimoForm" hidden>
+        <input id="acrescimoNome" placeholder="Nova assinatura" aria-label="Nome da nova assinatura" pattern=".*\S.*" required>
+        <input id="acrescimoValor" type="number" step="0.01" min="0.01" placeholder="Por mês" aria-label="Valor por mês" required>
+        <button class="btn">+ Acrescentar</button>
+      </form>
       <div class="tabela-wrap">
         <table id="tabelaAssinaturas">
           <thead id="cabAssinaturas"><tr><th class="sim" aria-label="Manter na simulação"></th><th><button class="ordenar" data-ordem="descricao">Estabelecimento</button></th><th><button class="ordenar" data-ordem="categoria">Categoria</button></th><th><button class="ordenar" data-ordem="origem">Cartão</button></th><th class="num"><button class="ordenar" data-ordem="meses">Meses</button></th><th class="num"><button class="ordenar" data-ordem="valor">Por mês</button></th><th class="num"><button class="ordenar" data-ordem="ano">Por ano</button></th><th><button class="ordenar" data-ordem="reajuste">Situação</button></th></tr></thead>
