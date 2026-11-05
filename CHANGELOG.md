@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.20.0] - 2026-11-05
+
+### Melhorado
+
+- **Comparar:** ao clicar numa categoria com mais de um mês no intervalo, os estabelecimentos aparecem mês a mês, com a variação contra o mês anterior. Fica fácil ver onde você comprou mais ou menos em cada período, e dá para ordenar por qualquer mês.
+
 ## [0.19.2] - 2026-11-05
 
 ### Corrigido
