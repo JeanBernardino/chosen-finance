@@ -3,6 +3,11 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.21.0] - 2026-11-05
+
+### Melhorado
+- **Comparar:** a janela de estabelecimentos não mostra mais a coluna Categoria, que só repetia a categoria já indicada no título.
+
 ## [0.20.0] - 2026-11-05
 
 ### Melhorado
