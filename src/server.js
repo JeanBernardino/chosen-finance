@@ -51,7 +51,9 @@ const rotas = {
     const nome = url.searchParams.get("nome") ?? "";
     const lidas = await ler(nome, await corpo(req));
     if (!lidas.length) throw invalido("nenhum lançamento encontrado no arquivo (layout não reconhecido?)");
-    return { arquivo: nome, lidas: lidas.length, novas: await db.salvar(pool, lidas, idOuNulo(url.searchParams.get("cartao"))) };
+    // o banco lido do arquivo manda: na tela, vários arquivos de uma vez levam um só cartão escolhido
+    const cartao = cartaoDa(lidas[0].origem, await db.cartoes(pool)) ?? idOuNulo(url.searchParams.get("cartao"));
+    return { arquivo: nome, lidas: lidas.length, novas: await db.salvar(pool, lidas, cartao) };
   },
   "GET /api/importacoes": () => db.importacoes(pool),
   "DELETE /api/importacoes": async (req, url) => ({ apagados: await db.apagarImportacao(pool, url.searchParams.get("arquivo") ?? "") }),
