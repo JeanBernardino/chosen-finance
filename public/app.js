@@ -1,5 +1,5 @@
 // Front: busca tudo uma vez e agrega no navegador (volume pessoal cabe com folga).
-import { orcamento, parcelasAbertas, parcelasFinanciadas, parcelasPorMes, parcelasDoMes, porEstabelecimento, recorrentes, somarMeses } from "./analises.js";
+import { orcamento, parcelasAbertas, parcelasFinanciadas, parcelasPagas, parcelasPorMes, parcelasDoMes, somaPorMes, porEstabelecimento, recorrentes, somarMeses } from "./analises.js";
 const FORA_DOS_GASTOS = ["Pagamento de fatura", "Transferência entre contas"];
 const $ = id => document.getElementById(id);
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format;
@@ -419,7 +419,7 @@ $("cmp").addEventListener("click", e => {
 // ---------- compromissos: parcelas que faltam e assinaturas ----------
 // variação contra a cobrança anterior; abaixo de 1% é câmbio ou arredondamento, não reajuste
 const reajuste = a => { const p = (a.valor - a.anterior) / a.anterior; return Math.abs(p) < 0.01 ? 0 : p; };
-let abertas = [], ativas = [], noGrafico = [];
+let abertas = [], ativas = [], noGrafico = [], pagas = [];
 // simulação numa grid: desmarcar tira do total e o formulário acrescenta itens `nova`; só vale até recarregar a página
 function simulador({ botao, tabela, form, corpo, chave, novo, pintar }) {
   const s = { ativo: false, cortadas: new Set(), novas: [] };
@@ -455,6 +455,10 @@ function simulador({ botao, tabela, form, corpo, chave, novo, pintar }) {
   });
   return s;
 }
+// quanto as parcelas de um mês mudaram contra outro; `curto` é para a coluna do gráfico, sem centavos
+const queda = (v, antes, curto) => { const d = v - antes, f = x => curto ? brl(x).replace(/,\d\d$/, "") : brl(x);
+  return Math.abs(d) < 0.005 ? `<span class="fraco">${curto ? "=" : "o mesmo"}</span>`
+    : `<span class="delta ${d > 0 ? "sobe" : "desce"}">${d > 0 ? "▲" : "▼"} ${f(Math.abs(d))}${curto ? "" : d > 0 ? " a mais" : " a menos"}</span>`; };
 const diferenca = (dif, unidade = "") => Math.abs(dif) < 0.005 ? "sem mudança" : dif > 0
   ? `<span class="delta sobe">▲ ${brl(dif)}${unidade} a mais</span>` : `<span class="delta desce">▼ economia de ${brl(-dif)}${unidade}</span>`;
 
@@ -465,12 +469,17 @@ async function carregarCompromissos() {
   ativas = recorrentes(todas.filter(ehGasto));
   const mensal = ativas.reduce((s, a) => s + a.valor, 0);
   const subiram = ativas.filter(a => reajuste(a) > 0);
-  const proximo = porMes.find(([m]) => m >= hoje().slice(0, 7));
+  const atual = hoje().slice(0, 7), seguinte = somarMeses(atual, 1);
+  // o passado entra no gráfico para ver a curva caindo; 12 meses bastam
+  pagas = parcelasPagas(todas, financiamentos, atual).filter(p => p.mes >= somarMeses(atual, -11));
+  const total = somaPorMes([...pagas, ...parcelasDoMes(abertas, atual).map(p => ({ ...p, mes: atual }))]);
+  const noAtual = total.get(atual) ?? 0, noSeguinte = new Map(porMes).get(seguinte) ?? 0;
 
   $("kpisCompromissos").innerHTML = `
     <div class="kpi destaque"><span>Parcelas a pagar</span><strong>${brl(abertas.reduce((s, p) => s + p.restante, 0))}</strong>
       <small>${abertas.length} ${abertas.length === 1 ? "parcelamento" : "parcelamentos"} em aberto</small></div>
-    <div class="kpi"><span>Parcelas ${proximo ? `em ${nomeMes(proximo[0])}` : "no próximo mês"}</span><strong>${brl(proximo?.[1] ?? 0)}</strong><small>já comprometido</small></div>
+    <div class="kpi"><span>Parcelas em ${nomeMes(seguinte)}</span><strong>${brl(noSeguinte)}</strong>
+      <small>${queda(noSeguinte, noAtual)} que em ${nomeMes(atual)} (${brl(noAtual)})</small></div>
     <div class="kpi"><span>Assinaturas por mês</span><strong>${brl(mensal)}</strong><small>${brl(mensal * 12)} por ano · ${ativas.length} ativas</small></div>
     <div class="kpi"><span>Subiram de preço</span><strong>${subiram.length}</strong><small>${esc(subiram.map(a => a.descricao).join(", ")) || "nenhuma"}</small></div>`;
 
@@ -482,15 +491,18 @@ function pintarParcelas() {
   const lista = simParcelas.lista(abertas);
   gradeParcelas(lista);
   noGrafico = simParcelas.fica(lista);
-  const porMes = parcelasPorMes(noGrafico), topo = Math.max(...porMes.map(([, v]) => v), 1);
+  const futuro = new Map(parcelasPorMes(noGrafico)), pago = somaPorMes(pagas);
+  const porMes = [...new Set([...pago.keys(), ...futuro.keys()])].sort().map(m => [m, (pago.get(m) ?? 0) + (futuro.get(m) ?? 0)]);
+  const topo = Math.max(...porMes.map(([, v]) => v), 1);
   $("parcelasSimuladas").hidden = !simParcelas.ativo;
   $("parcelasMes").hidden = !porMes.length;
   $("semParcelas").hidden = porMes.length > 0;
-  $("parcelasMes").innerHTML = porMes.map(([m, v]) => `
-    <button class="coluna" data-mes="${m}" title="${nomeMes(m)}: ${brl(v)}" aria-label="Ver parcelas de ${nomeMes(m)}: ${brl(v)}">
+  // mês só com parcelas já pagas fica apagado; a variação é contra a coluna anterior
+  $("parcelasMes").innerHTML = porMes.map(([m, v], i) => `
+    <button class="coluna${futuro.has(m) ? "" : " paga"}" data-mes="${m}" title="${nomeMes(m)}: ${brl(v)}${i ? ` · ${brl(v - porMes[i - 1][1])} contra o mês anterior` : ""}" aria-label="Ver parcelas de ${nomeMes(m)}: ${brl(v)}">
       <span class="valor">${brl(v).replace(/,\d\d$/, "")}</span>
       <span class="pilar cheio" style="height:${(v / topo * 100).toFixed(1)}%"></span>
-      <span class="rotulo">${mesCurto(m)}</span>
+      <span class="rotulo">${mesCurto(m)}</span><span class="var">${i ? queda(v, porMes[i - 1][1], true) : ""}</span>
     </button>`).join("");
 }
 const simParcelas = simulador({
@@ -613,7 +625,7 @@ $("parcelasMes").addEventListener("click", e => {
   const m = e.target.closest(".coluna")?.dataset.mes;
   if (!m) return;
   $("tParcelasMes").textContent = `Parcelas de ${nomeMes(m)}`;
-  gradeParcelasMes(parcelasDoMes(noGrafico, m));
+  gradeParcelasMes([...pagas.filter(p => p.mes === m), ...parcelasDoMes(noGrafico, m)]);
   $("dlgParcelasMes").showModal();
 });
 

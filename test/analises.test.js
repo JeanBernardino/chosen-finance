@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { orcamento, parcelasAbertas, parcelasDoMes, parcelasFinanciadas, parcelasPorMes, porEstabelecimento, recorrentes } from "../public/analises.js";
+import { orcamento, parcelasAbertas, parcelasDoMes, parcelasFinanciadas, parcelasPagas, parcelasPorMes, somaPorMes, porEstabelecimento, recorrentes } from "../public/analises.js";
 
 const t = (mes, descricao, valor, categoria = "Compras online", extra = {}) =>
   ({ mes, data: `${mes}-10`, descricao, valor, categoria, origem: "Nubank", ...extra });
@@ -86,4 +86,16 @@ test("parcelasFinanciadas: abatidas no fim contam como pagas e antecipam a últi
   const [p] = parcelasFinanciadas([{ id: 1, descricao: "Carro", valor: 1000, parcela_total: 48, primeira: "2025-11-01", abatidas: 3 }], "2026-10");
   assert.deepEqual([p.parcela_atual, p.faltam, p.fim, p.restante], [15, 33, "2029-07", 33000]);
   assert.equal(parcelasPorMes([p]).at(-1)[0], "2029-07");
+});
+
+test("parcelasPagas: as das faturas e as dos financiamentos já vencidos; somadas ao que falta, não contam nada duas vezes", () => {
+  const p = (mes, n) => t(mes, `Loja - Parcela ${n}/3`, -100, "Compras online", { parcela_atual: n, parcela_total: 3 });
+  const avista = t("2026-09", "Mercado", -50);
+  const carro = { id: 1, descricao: "Carro", valor: 1000, parcela_total: 5, primeira: "2026-09-01", abatidas: 1 };
+  const pagas = parcelasPagas([p("2026-09", 1), p("2026-10", 2), avista], [carro], "2026-10");
+  assert.deepEqual(pagas.map(x => [x.mes, x.descricao, x.n, x.valor]), [
+    ["2026-09", "Loja", 1, 100], ["2026-10", "Loja", 2, 100], ["2026-09", "Carro", 1, 1000], ["2026-10", "Carro", 2, 1000]]);
+  const futuro = parcelasPorMes([...parcelasAbertas([p("2026-09", 1), p("2026-10", 2)]), ...parcelasFinanciadas([carro], "2026-10")]);
+  assert.deepEqual([...somaPorMes(pagas)], [["2026-09", 1100], ["2026-10", 1100]]);
+  assert.deepEqual(futuro, [["2026-11", 1100], ["2026-12", 1000]]);
 });

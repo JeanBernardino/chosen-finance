@@ -49,6 +49,23 @@ export function parcelasPorMes(abertas) {
   return [...m].sort((a, b) => a[0].localeCompare(b[0]));
 }
 
+/**
+ * Parcelas já pagas até `mesAtual`, uma por mês: as das faturas, pelo mês da fatura, mais as dos financiamentos que já
+ * venceram (a de `mesAtual` conta como paga, como em `parcelasFinanciadas`). `n` é o número da parcela. Somadas às de
+ * `parcelasPorMes`, dão a curva inteira sem contar nada duas vezes.
+ */
+export function parcelasPagas(transacoes, financiamentos, mesAtual) {
+  const l = transacoes.filter(t => t.parcela_total && t.valor < 0).map(t => ({ mes: t.mes, descricao: estabelecimento(t.descricao),
+    origem: t.origem, n: t.parcela_atual, parcela_total: t.parcela_total, valor: -t.valor }));
+  for (const f of financiamentos) {
+    const primeira = f.primeira.slice(0, 7), mensais = f.parcela_total - (f.abatidas ?? 0);
+    for (let i = 0, mes = primeira; i < mensais && mes <= mesAtual; mes = somarMeses(primeira, ++i))
+      l.push({ mes, descricao: f.descricao, origem: "Financiamento", n: i + 1, parcela_total: f.parcela_total, valor: Number(f.valor) });
+  }
+  return l;
+}
+export const somaPorMes = itens => { const m = new Map(); for (const p of itens) m.set(p.mes, (m.get(p.mes) ?? 0) + p.valor); return m; };
+
 /** As parcelas em aberto que caem em `mes`, cada uma com `n`, o número que a parcela terá nesse mês. */
 export const parcelasDoMes = (abertas, mes) => abertas.flatMap(p => {
   for (let i = 1; i <= p.faltam; i++) if (somarMeses(p.mes, i) === mes) return [{ ...p, n: p.parcela_atual + i }];

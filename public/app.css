@@ -211,6 +211,7 @@ dialog tfoot td { position: sticky; bottom: 0; background: var(--card); }
 
 /* comparar: mês a mês no intervalo */
 .coluna .pilar.cheio { background: var(--chart); }
+.coluna.paga .pilar { opacity: .45; } /* compromissos: mês só com parcelas já pagas */
 .coluna .var { font-size: 11px; white-space: nowrap; font-variant-numeric: tabular-nums; min-height: 1.5em; }
 .cmp-cat td small { display: block; font-size: 11px; }
 .cmp-cat th:first-child, .cmp-cat td:first-child { position: sticky; left: 0; background: var(--card); }
