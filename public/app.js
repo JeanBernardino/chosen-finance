@@ -47,7 +47,7 @@ for (const d of document.querySelectorAll("dialog")) {
 }
 
 // ---------- navegação e tema ----------
-const VIEWS = { painel: () => carregar(), comparar: () => carregarComparar(), compromissos: () => carregarCompromissos(), gastos: () => carregarGastos(), importar: () => carregarImportacoes(), cartoes: () => carregarCartoes(),
+const VIEWS = { painel: () => carregar(true), comparar: () => carregarComparar(), compromissos: () => carregarCompromissos(), gastos: () => carregarGastos(), importar: () => carregarImportacoes(), cartoes: () => carregarCartoes(),
   config: () => carregarRegras(), novidades: () => carregarNovidades() };
 function rota() {
   const v = VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : "painel";
@@ -115,11 +115,11 @@ function grade({ cab, corpo, busca, cartao, chaves, ordem, texto, linha, colunas
 }
 
 // ---------- painel ----------
-async function carregar() {
+async function carregar(abrindo = false) {
   [todas, cartoes, limites, financiamentos] = await Promise.all([api("GET", "/api/transacoes"), api("GET", "/api/cartoes"), api("GET", "/api/orcamentos"), api("GET", "/api/financiamentos")]);
-  // mês atual sempre na lista e selecionado ao abrir; depois mantém a escolha do usuário
+  // mês atual sempre na lista e selecionado ao abrir a tela; recargas dentro dela mantêm a escolha do usuário
   const meses = [...new Set([hoje().slice(0, 7), ...todas.map(t => t.mes)])].sort().reverse();
-  const atual = $("mes").options.length ? $("mes").value : hoje().slice(0, 7);
+  const atual = abrindo || !$("mes").options.length ? hoje().slice(0, 7) : $("mes").value;
   $("mes").innerHTML = `<option value="">Todo o período</option>` + meses.map(m => `<option value="${m}">${nomeMes(m)}</option>`).join("");
   $("mes").value = meses.includes(atual) ? atual : "";
   atualizarCategorias();
