@@ -3,6 +3,11 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.19.1] - 2026-11-05
+
+### Corrigido
+- A **Visão geral** agora sempre abre no mês atual, mesmo depois de você ter escolhido outro mês e trocado de tela.
+
 ## [0.19.0] - 2026-10-29
 
 ### Novo
