@@ -99,10 +99,10 @@ export function porEstabelecimento(gastos) {
   for (const t of gastos) {
     const d = estabelecimento(t.descricao).replace(/\s*\*\s*/g, "*"); // "Dm *Spotify" e "Dm*Spotify" são a mesma
     const k = `${t.origem}|${d.toLowerCase()}`;
-    const e = m.get(k) ?? m.set(k, { descricao: d, origem: t.origem, cor: t.cor, categoria: t.categoria, vezes: 0, meses: new Set(), total: 0 }).get(k);
+    const e = m.get(k) ?? m.set(k, { descricao: d, origem: t.origem, cor: t.cor, categoria: t.categoria, vezes: 0, porMes: {}, total: 0 }).get(k);
     e.vezes++;
-    e.meses.add(t.mes);
+    e.porMes[t.mes] = (e.porMes[t.mes] ?? 0) - t.valor;
     e.total -= t.valor;
   }
-  return [...m.values()].map(e => ({ ...e, meses: e.meses.size })).sort((a, b) => b.vezes - a.vezes || b.total - a.total);
+  return [...m.values()].map(e => ({ ...e, meses: Object.keys(e.porMes).length })).sort((a, b) => b.vezes - a.vezes || b.total - a.total);
 }

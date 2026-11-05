@@ -394,19 +394,26 @@ const gradeEstab = grade({
       <td>${esc(e.categoria)}</td>
       <td><span class="badge">${ponto(e.origem)}${esc(e.origem)}</span></td>
       <td class="num mono">${e.vezes}</td>
-      <td class="num mono">${e.meses}</td>
+      ${e.span.length ? e.span.map((m, i) => `<td class="num mono">${e[m] ? brl(e[m]) : `<span class="fraco">—</span>`}<small>${i ? variacao(e[m], e[e.span[i - 1]]) : ""}</small></td>`).join("")
+        : `<td class="num mono">${e.meses}</td>`}
       <td class="num mono">${brl(e.total)}</td>
     </tr>`,
   // o total acompanha a busca: buscar "ifood" soma todos os pedidos
   resumo: lista => $("totalEstab").innerHTML = `<tr><td colspan="3">Total · ${lista.length} ${lista.length === 1 ? "estabelecimento" : "estabelecimentos"}</td>
-    <td class="num mono">${lista.reduce((s, e) => s + e.vezes, 0)}</td><td></td><td class="num mono">${brl(lista.reduce((s, e) => s + e.total, 0))}</td></tr>`,
+    <td class="num mono">${lista.reduce((s, e) => s + e.vezes, 0)}</td>${lista[0]?.span.length ? lista[0].span.map(m => `<td class="num mono">${brl(lista.reduce((s, e) => s + e[m], 0))}</td>`).join("") : "<td></td>"}<td class="num mono">${brl(lista.reduce((s, e) => s + e.total, 0))}</td></tr>`,
 });
 $("cmp").addEventListener("click", e => {
   const b = e.target.closest("[data-det]");
   if (!b) return;
   const { categoria, mes } = b.dataset, meses = mes ? [mes] : mesesEntre($("cmpDe").value, $("cmpAte").value);
   $("tEstab").textContent = `${categoria ?? "Todas as categorias"} · ${mes ? nomeMes(mes) : `${nomeMes(meses[0])} a ${nomeMes(meses.at(-1))}`}`;
-  gradeEstab(porEstabelecimento(todas.filter(t => ehGasto(t) && meses.includes(t.mes) && (!categoria || t.categoria === categoria))));
+  // mais de um mês: uma coluna por mês, com a variação contra o mês anterior, para ver o que comprei mais ou menos
+  const span = meses.length > 1 ? meses : [];
+  const ord = (campo, rotulo) => `<th${campo === "descricao" || campo === "categoria" || campo === "origem" ? "" : ` class="num"`}><button class="ordenar" data-ordem="${campo}">${rotulo}</button></th>`;
+  $("cabEstab").innerHTML = `<tr>${ord("descricao", "Estabelecimento")}${ord("categoria", "Categoria")}${ord("origem", "Cartão")}${ord("vezes", "Vezes")}${
+    span.length ? span.map(m => ord(m, mesCurto(m))).join("") : ord("meses", "Meses")}${ord("total", "Total")}</tr>`;
+  gradeEstab(porEstabelecimento(todas.filter(t => ehGasto(t) && meses.includes(t.mes) && (!categoria || t.categoria === categoria)))
+    .map(e => ({ ...e, span, ...Object.fromEntries(span.map(m => [m, e.porMes[m] ?? 0])) })));
   $("dlgEstab").showModal();
 });
 

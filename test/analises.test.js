@@ -67,6 +67,7 @@ test("porEstabelecimento junta a mesma loja por cartão, conta vezes e meses e o
   ];
   assert.deepEqual(porEstabelecimento(gastos).map(e => [e.descricao, e.origem, e.vezes, e.meses, e.total]), [
     ["Ifood*Pizza", "Nubank", 3, 2, 100], ["Loja X", "Nubank", 1, 1, 300], ["Ifood*Pizza", "Itaú", 1, 1, 40]]);
+  assert.deepEqual(porEstabelecimento(gastos)[0].porMes, { "2026-09": 80, "2026-10": 20 });
 });
 
 test("parcelasFinanciadas conta a parcela do mês como paga e some com o financiamento quitado", () => {
