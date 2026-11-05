@@ -3,6 +3,13 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.22.0] - 2026-11-05
+
+### Novo
+- **Compromissos:** o gráfico de parcelas por mês agora mostra também os últimos 12 meses já pagos (em tom apagado), para ver a curva caindo.
+- Cada mês do gráfico mostra quanto as parcelas subiram ou caíram em relação ao mês anterior; clicar num mês pago lista as parcelas daquele mês.
+- O indicador do próximo mês diz quanto as parcelas caem (ou sobem) em relação ao mês atual.
+
 ## [0.21.0] - 2026-11-05
 
 ### Melhorado
