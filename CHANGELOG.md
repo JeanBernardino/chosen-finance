@@ -3,6 +3,11 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.19.2] - 2026-11-05
+
+### Corrigido
+- Importar vários arquivos de bancos diferentes de uma vez não joga mais todos no mesmo cartão: cada arquivo vai para o cartão do banco que está nele.
+
 ## [0.19.1] - 2026-11-05
 
 ### Corrigido
