@@ -148,6 +148,7 @@ const rotas = {
     return db.salvarAcerto(pool, { evento_id, de, para, valor });
   },
   "DELETE /api/eventos/acertos": async (req, url) => ({ apagados: await db.apagarAcerto(pool, idOuNulo(url.searchParams.get("id"))) }),
+  "DELETE /api/eventos/lancamentos": async (req, url) => ({ apagados: await db.zerarEvento(pool, idOuNulo(url.searchParams.get("evento_id"))) }),
   "DELETE /api/eventos/gastos": async (req, url) => ({ apagados: await db.apagarGastoEvento(pool, idOuNulo(url.searchParams.get("id"))) }),
   "GET /api/regras": () => db.listaRegras(pool),
   // sem id: regra nova, vence todas as outras; com id: edita mantendo a prioridade

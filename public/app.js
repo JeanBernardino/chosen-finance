@@ -710,6 +710,7 @@ $("abrirChat").addEventListener("click", () => mostrarChat($("chatFlutuante").hi
 $("fecharChat").addEventListener("click", () => mostrarChat(false));
 $("chatFlutuante").addEventListener("keydown", e => e.key === "Escape" && mostrarChat(false));
 $("limparChat").addEventListener("click", () => {
+  if (!confirm("Limpar a conversa?")) return;
   conversa = [];
   $("conversa").querySelectorAll(".msg").forEach(m => m.remove());
   $("sugestoes").hidden = false;
@@ -936,7 +937,7 @@ async function carregarEventos(id) {
 function renderEvento() {
   const ev = eventoAtual();
   $("semEvento").hidden = !!ev;
-  $("detalheEvento").hidden = $("eventoAtual").hidden = $("editarEvento").hidden = $("excluirEvento").hidden = !ev;
+  $("detalheEvento").hidden = $("eventoAtual").hidden = $("editarEvento").hidden = $("zerarEvento").hidden = $("excluirEvento").hidden = !ev;
   if (!ev) return;
   const d = dividir(ev.pessoas, ev.gastos, ev.pagamentos), nome = id => ev.pessoas.find(p => p.id === id)?.nome ?? "";
   const grupo = id => { const p = ev.pessoas.find(p => p.id === id); return p?.grupo ?? p?.nome ?? ""; };
@@ -1007,6 +1008,13 @@ async function excluirEvento(ev) {
   status("Evento excluído.");
   await carregarEventos();
 }
+$("zerarEvento").addEventListener("click", tentar(async () => {
+  const ev = eventoAtual();
+  if (!confirm(`Zerar ${ev.nome}? Apaga todos os gastos e pagamentos; o evento e os participantes ficam.`)) return;
+  await api("DELETE", `/api/eventos/lancamentos?evento_id=${ev.id}`);
+  status("Evento zerado.");
+  await carregarEventos();
+}));
 $("excluirEvento").addEventListener("click", tentar(() => excluirEvento(eventoAtual())));
 $("novoEventoGasto").addEventListener("click", () => abrirEventoGasto());
 $("copiarDivisao").addEventListener("click", tentar(async () => {
@@ -1033,6 +1041,7 @@ $("linhasEventoPessoas").addEventListener("click", tentar(async e => {
       await json("POST", "/api/eventos/acertos", { evento_id: ev.id, de: a.de_id, para: a.para_id, valor: a.valor });
     status("Marcado como pago.");
   } else if (desfazer) {
+    if (!confirm("Desfazer o pagamento marcado?")) return;
     for (const p of ev.pagamentos.filter(p => p.de === desfazer)) await api("DELETE", `/api/eventos/acertos?id=${p.id}`);
     status("Pagamento desfeito.");
   } else return;

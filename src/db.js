@@ -271,4 +271,7 @@ export const salvarGastosEvento = async (db, { evento_id, pago_por, itens }) => 
 export const salvarAcerto = async (db, { evento_id, de, para, valor }) => (await db.query(
   "insert into evento_acerto (evento_id, de, para, valor) values ($1, $2, $3, $4) returning *", [evento_id, de, para, valor])).rows[0];
 export const apagarAcerto = async (db, id) => (await db.query("delete from evento_acerto where id = $1", [id])).rowCount;
+/** Zera o evento: some com gastos e acertos, ficam nome, data e participantes. */
+export const zerarEvento = async (db, id) => (await db.query(
+  "with a as (delete from evento_acerto where evento_id = $1) delete from evento_gasto where evento_id = $1", [id])).rowCount;
 export const apagarGastoEvento = async (db, id) => (await db.query("delete from evento_gasto where id = $1", [id])).rowCount;
