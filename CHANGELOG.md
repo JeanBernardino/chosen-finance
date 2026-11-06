@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.28.0] - 2026-11-06
+
+### Melhorado
+
+- **Eventos:** botão **Excluir evento** na barra, ao lado de Editar. Antes a exclusão ficava escondida dentro do diálogo de edição.
+
 ## [0.27.0] - 2026-11-06
 
 ### Melhorado
