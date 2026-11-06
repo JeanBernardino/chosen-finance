@@ -3,6 +3,17 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.30.0] - 2026-11-06
+
+### Novo
+
+- **Eventos** abre numa grade com todos os eventos: data, participantes, total e situação, com busca e ordenação. Clique no nome para ver os gastos e a divisão, e em **← Todos os eventos** para voltar.
+- Evento finalizado pode ser **inativado** na grade. A grade mostra só os ativos; marque **Mostrar inativos** para ver os demais e reativar.
+
+### Melhorado
+
+- Clicar no menu da tela em que você já está recarrega a tela do começo.
+
 ## [0.29.0] - 2026-11-06
 
 ### Novo
