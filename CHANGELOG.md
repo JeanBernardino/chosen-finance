@@ -3,6 +3,16 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.29.0] - 2026-11-06
+
+### Novo
+
+- **Eventos:** botão **Zerar**, que apaga todos os gastos e pagamentos do evento e mantém o nome, a data e os participantes. Pede confirmação antes.
+
+### Melhorado
+
+- Toda exclusão pede confirmação: agora também **desfazer pagamento** na divisão e **limpar a conversa** do assistente.
+
 ## [0.28.0] - 2026-11-06
 
 ### Melhorado
