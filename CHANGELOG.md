@@ -5,6 +5,11 @@ Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### C
 
 
 
+
+## [0.32.0] - 2026-11-06
+
+### Melhorado
+- **Pix por evento:** a chave Pix e quem recebe agora ficam no cadastro de cada evento (**Editar evento**), sem precisar reiniciar o app. O botão **Pix** aparece para quem deve a esse participante ou ao casal dele.
 ## [0.31.1] - 2026-11-06
 
 ### Corrigido
