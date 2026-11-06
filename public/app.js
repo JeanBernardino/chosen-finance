@@ -24,7 +24,8 @@ const emAberto = () => [...parcelasAbertas(todas), ...parcelasFinanciadas(financ
 
 async function api(metodo, url, corpo) {
   const r = await fetch(url, { method: metodo, body: corpo });
-  const j = await r.json();
+  // 404 de rota inexistente (servidor desatualizado) vem em texto puro
+  const t = await r.text(), j = (() => { try { return JSON.parse(t); } catch { return { erro: `${r.status}: ${t}` }; } })();
   if (!r.ok) throw new Error(j.erro);
   return j;
 }
