@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.27.0] - 2026-11-06
+
+### Melhorado
+
+- **Eventos:** o pagamento da divisão agora é marcado direto na grade de participantes. Quem deve aparece em vermelho; um clique marca como pago e a linha fica verde. Clicar de novo desfaz.
+
 ## [0.26.0] - 2026-11-06
 
 ### Novo
