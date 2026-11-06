@@ -8,6 +8,7 @@ import { ler } from "./importadores.js";
 import { cartaoDa, PASTA, vigiar } from "./entrada.js";
 import { contexto, conversar, validarMensagens } from "./assistente.js";
 import { lerFoto, lerNfce, limparItens } from "./recibo.js";
+import * as pix from "./pix.js";
 
 const PORT = Number(process.env.PORT || 4780);
 const PUBLIC = new URL("../public/", import.meta.url).pathname;
@@ -154,6 +155,14 @@ const rotas = {
   },
   "DELETE /api/eventos/acertos": async (req, url) => ({ apagados: await db.apagarAcerto(pool, idOuNulo(url.searchParams.get("id"))) }),
   "DELETE /api/eventos/lancamentos": async (req, url) => ({ apagados: await db.zerarEvento(pool, idOuNulo(url.searchParams.get("evento_id"))) }),
+  // titular do Pix: a tela só oferece o QR nos acertos que vêm para quem tem esse nome
+  "GET /api/pix": () => ({ titular: pix.config()?.nome ?? null }),
+  "GET /api/pix/cobranca": async (req, url) => {
+    const cfg = pix.config(), valor = Number(url.searchParams.get("valor"));
+    if (!cfg) throw invalido("configure PIX_CHAVE e PIX_NOME para gerar o Pix");
+    if (!(valor > 0 && valor < 1e9)) throw invalido("valor inválido");
+    return pix.cobranca(cfg, valor);
+  },
   "DELETE /api/eventos/gastos": async (req, url) => ({ apagados: await db.apagarGastoEvento(pool, idOuNulo(url.searchParams.get("id"))) }),
   "GET /api/regras": () => db.listaRegras(pool),
   // sem id: regra nova, vence todas as outras; com id: edita mantendo a prioridade
