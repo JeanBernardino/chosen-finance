@@ -318,9 +318,20 @@ const variacao = (b, a) => {
   return Math.abs(p) < 0.5 ? `<span class="fraco">= 0%</span>` : `<span class="delta ${p > 0 ? "sobe" : "desce"}">${p > 0 ? "▲" : "▼"} ${Math.abs(p).toFixed(0)}%</span>`;
 };
 
+// a fonte nunca mistura: fatura (mês do vencimento) ou gasto manual (mês da data, em dinheiro, sem o filtro de fatura)
+const manualCmp = () => $("cmpFonte").value === "manual";
+const fonteCmp = () => manualCmp()
+  ? gastos.map(g => ({ mes: g.data.slice(0, 7), valor: -g.valor, categoria: g.categoria, descricao: g.descricao, origem: "Dinheiro" }))
+  : todas.filter(ehGasto);
+
 async function carregarComparar() {
-  todas = await api("GET", "/api/transacoes");
-  const meses = [...new Set(todas.map(t => t.mes))].sort();
+  [todas, gastos] = await Promise.all([api("GET", "/api/transacoes"), api("GET", "/api/gastos")]);
+  montarComparar();
+}
+
+function montarComparar() {
+  const meses = [...new Set((manualCmp() ? fonteCmp() : todas).map(t => t.mes))].sort(); // fatura: meses de todos os lançamentos, como antes
+  $("cmpVazioTexto").textContent = manualCmp() ? "Anote gastos manuais para comparar os meses." : "Importe faturas para comparar os meses.";
   $("cmpVazio").hidden = meses.length > 0;
   $("cmp").hidden = meses.length === 0;
   if (!meses.length) return;
@@ -337,8 +348,8 @@ function renderComparar() {
   // "até" antes do "de" vira o mesmo mês, para o intervalo nunca ficar vazio
   if ($("cmpAte").value < $("cmpDe").value) $("cmpAte").value = $("cmpDe").value;
   const de = $("cmpDe").value, ate = $("cmpAte").value, span = mesesEntre(de, ate);
-  const gastos = todas.filter(ehGasto);
-  const porMes = new Map(quebrar(gastos, t => t.mes).map(([m, e]) => [m, e.total]));
+  const lista = fonteCmp();
+  const porMes = new Map(quebrar(lista, t => t.mes).map(([m, e]) => [m, e.total]));
   const valores = span.map(m => porMes.get(m) ?? 0);
   const total = valores.reduce((s, v) => s + v, 0);
   const maior = span[valores.indexOf(Math.max(...valores))], menor = span[valores.indexOf(Math.min(...valores))];
@@ -385,6 +396,7 @@ const gradeComparar = grade({
     celula(somaCol(lista, "vals", i), somaCol(lista, "ants", i), null, lista[0].meses[i])).join("")}<td class="num mono">${detalhe(brl(lista.reduce((s, x) => s + x.total, 0)))}</td></tr>` : "",
 });
 for (const id of ["cmpDe", "cmpAte"]) $(id).addEventListener("change", renderComparar);
+$("cmpFonte").addEventListener("change", montarComparar);
 
 // clique numa categoria, num mês ou num total: os estabelecimentos que somaram aquilo, do que mais repete ao que menos
 const gradeEstab = grade({
@@ -412,9 +424,9 @@ $("cmp").addEventListener("click", e => {
   // mais de um mês: uma coluna por mês, com a variação contra o mês anterior, para ver o que comprei mais ou menos
   const span = meses.length > 1 ? meses : [];
   const ord = (campo, rotulo) => `<th${campo === "descricao" || campo === "origem" ? "" : ` class="num"`}><button class="ordenar" data-ordem="${campo}">${rotulo}</button></th>`;
-  $("cabEstab").innerHTML = `<tr>${ord("descricao", "Estabelecimento")}${ord("origem", "Cartão")}${ord("vezes", "Vezes")}${
+  $("cabEstab").innerHTML = `<tr>${ord("descricao", "Estabelecimento")}${ord("origem", manualCmp() ? "Origem" : "Cartão")}${ord("vezes", "Vezes")}${
     span.length ? span.map(m => ord(m, mesCurto(m))).join("") : ord("meses", "Meses")}${ord("total", "Total")}</tr>`;
-  gradeEstab(porEstabelecimento(todas.filter(t => ehGasto(t) && meses.includes(t.mes) && (!categoria || t.categoria === categoria)))
+  gradeEstab(porEstabelecimento(fonteCmp().filter(t => meses.includes(t.mes) && (!categoria || t.categoria === categoria)))
     .map(e => ({ ...e, span, ...Object.fromEntries(span.map(m => [m, e.porMes[m] ?? 0])) })));
   $("dlgEstab").showModal();
 });

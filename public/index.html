@@ -90,10 +90,11 @@
     <header class="cabecalho">
       <div><h1>Comparar</h1><p class="sub">Mês a mês no intervalo: gastei mais ou menos, e em quê.</p></div>
       <div class="filtros">
+        <select id="cmpFonte" aria-label="Fonte" title="Fatura conta no mês do vencimento; gasto manual, no mês da data"><option value="fatura">Fatura</option><option value="manual">Gasto manual</option></select>
         <select id="cmpDe" aria-label="De"></select> a <select id="cmpAte" aria-label="Até"></select>
       </div>
     </header>
-    <div id="cmpVazio" class="vazio card" hidden><h2>Nenhum lançamento ainda</h2><p>Importe faturas para comparar os meses.</p></div>
+    <div id="cmpVazio" class="vazio card" hidden><h2>Nenhum lançamento ainda</h2><p id="cmpVazioTexto"></p></div>
     <div id="cmp" hidden>
       <div class="kpis" id="cmpKpis"></div>
       <article class="card">
