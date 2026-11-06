@@ -7,6 +7,11 @@ Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### C
 
 
 
+
+## [0.32.2] - 2026-11-06
+
+### Corrigido
+- O QR Code do Pix era recusado pelo banco quando a chave era um celular sem o `+55`. Agora a chave entra no formato certo, com ou sem pontuação: celular, CPF, CNPJ, e-mail ou chave aleatória.
 ## [0.32.1] - 2026-11-06
 
 ### Corrigido
