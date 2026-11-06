@@ -97,7 +97,7 @@ export async function conversar(mensagens, dados, res) {
   if (!r.ok) {
     const erro = (await r.json().catch(() => ({}))).error ?? `Ollama respondeu ${r.status}`;
     throw Object.assign(new Error(/not found/.test(erro) ? `modelo não baixado. Rode: ollama pull ${MODELO}`
-      : /killed/.test(erro) ? "o Ollama ficou sem memória: aumente a memória do Docker Desktop (Settings > Resources) ou use um modelo menor em OLLAMA_MODEL"
+      : /killed/.test(erro) ? "o Ollama ficou sem memória: feche outros apps ou use um modelo menor em OLLAMA_MODEL"
       : erro), { status: 502 });
   }
   res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
