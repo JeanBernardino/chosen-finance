@@ -3,6 +3,11 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+
+## [0.31.0] - 2026-11-06
+
+### Novo
+- **Cobrança por Pix nos eventos:** na divisão, quem deve para você ganha o botão **Pix**, que abre o QR Code com o valor já preenchido e o Pix copia e cola. Para ligar, inicie o app com `PIX_CHAVE` (sua chave) e `PIX_NOME` (titular); `PIX_CIDADE` é opcional. Você é reconhecido no evento como "Eu", pelo nome do titular ou pelo primeiro nome dele.
 ## [0.30.0] - 2026-11-06
 
 ### Novo
