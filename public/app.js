@@ -936,7 +936,7 @@ async function carregarEventos(id) {
 function renderEvento() {
   const ev = eventoAtual();
   $("semEvento").hidden = !!ev;
-  $("detalheEvento").hidden = $("eventoAtual").hidden = $("editarEvento").hidden = !ev;
+  $("detalheEvento").hidden = $("eventoAtual").hidden = $("editarEvento").hidden = $("excluirEvento").hidden = !ev;
   if (!ev) return;
   const d = dividir(ev.pessoas, ev.gastos, ev.pagamentos), nome = id => ev.pessoas.find(p => p.id === id)?.nome ?? "";
   const grupo = id => { const p = ev.pessoas.find(p => p.id === id); return p?.grupo ?? p?.nome ?? ""; };
@@ -1001,6 +1001,13 @@ function abrirEventoGasto(g = {}) {
 $("eventoAtual").addEventListener("change", renderEvento);
 $("novoEvento").addEventListener("click", () => abrirEvento());
 $("editarEvento").addEventListener("click", () => abrirEvento(eventoAtual()));
+async function excluirEvento(ev) {
+  if (!confirm(`Excluir ${ev.nome} com todos os gastos?`)) return;
+  await api("DELETE", `/api/eventos?id=${ev.id}`);
+  status("Evento excluído.");
+  await carregarEventos();
+}
+$("excluirEvento").addEventListener("click", tentar(() => excluirEvento(eventoAtual())));
 $("novoEventoGasto").addEventListener("click", () => abrirEventoGasto());
 $("copiarDivisao").addEventListener("click", tentar(async () => {
   const ev = eventoAtual(), d = dividir(ev.pessoas, ev.gastos, ev.pagamentos);
@@ -1080,12 +1087,7 @@ $("dlgRecibo").addEventListener("close", tentar(async () => {
 }));
 $("dlgEvento").addEventListener("close", tentar(async () => {
   const r = $("dlgEvento").returnValue, f = $("formEvento");
-  if (r === "apagar") {
-    if (!confirm(`Excluir ${f.elements.nome.value} com todos os gastos?`)) return;
-    await api("DELETE", `/api/eventos?id=${f.dataset.id}`);
-    status("Evento excluído.");
-    return carregarEventos();
-  }
+  if (r === "apagar") return excluirEvento(eventoAtual());
   if (r !== "ok") return;
   const { nome, data, pessoas } = Object.fromEntries(new FormData(f));
   const ev = await json("POST", "/api/eventos", { id: f.dataset.id || null, nome, data, pessoas: pessoas.split("\n") });
