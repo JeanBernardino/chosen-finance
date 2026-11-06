@@ -3,7 +3,7 @@
   --bg: #f5f7f6; --card: #ffffff; --card-2: #f9fbfa; --text: #101c18; --muted: #64746e; --line: #e3e9e6;
   --accent: #00C878; --on-accent: #022C22; --accent-hover: #00b36b; --chart: #008F63;
   --brand: #064E3B; --link: #008F63; --accent-soft: #e3f8ee; --in: #008F63;
-  --warn: #c2410c; --warn-soft: #fdeee5; --sobe: #c2410c; --desce: #008F63;
+  --falta: #dc2626; --warn: #c2410c; --warn-soft: #fdeee5; --sobe: #c2410c; --desce: #008F63;
   --nubank: #8A05BE; --itau: #EC7000;
   --side: #022C22; --side-text: #cfe9de; --side-muted: #7fa898; --side-ativo: #064E3B;
   --sombra: 0 1px 2px rgb(16 28 24 / .04), 0 1px 3px rgb(16 28 24 / .06);
@@ -14,7 +14,7 @@
   :root:not([data-theme="light"]) {
     --bg: #0b1210; --card: #121c19; --card-2: #16221e; --text: #e4efea; --muted: #8aa199; --line: #22312c;
     --brand: #A7F3D0; --link: #34d399; --accent-soft: #0f3328; --in: #6ee7b7; --chart: #10b981;
-    --warn: #fb923c; --warn-soft: #3a2418; --sobe: #fb923c; --desce: #34d399;
+    --falta: #f87171; --warn: #fb923c; --warn-soft: #3a2418; --sobe: #fb923c; --desce: #34d399;
     --nubank: #C77DFF; --itau: #FF8F2E;
     --side: #07100d; --side-ativo: #0f3328; --sombra: none; color-scheme: dark;
   }
@@ -22,7 +22,7 @@
 :root[data-theme="dark"] {
   --bg: #0b1210; --card: #121c19; --card-2: #16221e; --text: #e4efea; --muted: #8aa199; --line: #22312c;
   --brand: #A7F3D0; --link: #34d399; --accent-soft: #0f3328; --in: #6ee7b7; --chart: #10b981;
-  --warn: #fb923c; --warn-soft: #3a2418; --sobe: #fb923c; --desce: #34d399;
+  --falta: #f87171; --warn: #fb923c; --warn-soft: #3a2418; --sobe: #fb923c; --desce: #34d399;
   --nubank: #C77DFF; --itau: #FF8F2E;
   --side: #07100d; --side-ativo: #0f3328; --sombra: none; color-scheme: dark;
 }
@@ -69,6 +69,10 @@ input[type="color"] { padding: 2px; width: 100%; }
 .icone { all: unset; cursor: pointer; color: var(--muted); padding: 4px 6px; border-radius: 6px; font-size: 13px; }
 .icone:hover { color: var(--text); background: var(--card-2); }
 .icone.perigo:hover { color: var(--warn); }
+/* acerto da divisão: o próprio item alterna entre pendente (vermelho) e pago (verde) */
+.acerto { all: unset; cursor: pointer; display: inline-block; padding: 2px 8px; margin: 2px 0; border-radius: 6px; border: 1px solid currentColor; color: var(--falta); }
+.acerto.pago { color: var(--in); }
+.acerto:hover { background: var(--card-2); }
 .icone:disabled { opacity: .3; cursor: default; background: none; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, a:focus-visible, .icone:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 

@@ -943,12 +943,12 @@ function renderEvento() {
   $("kpisEvento").innerHTML = `
     <div class="kpi destaque"><span>Gasto total</span><strong>${brl(d.total)}</strong><small>${ev.gastos.length} gastos</small></div>
     <div class="kpi"><span>Por pessoa</span><strong>${brl(d.parte)}</strong><small>${ev.pessoas.length} participantes</small></div>`;
-  $("acertos").innerHTML = [
-    ...d.acertos.map((a, i) => `${esc(a.de)} paga ${brl(a.valor)} para ${esc(a.para)} <button class="icone" data-pagar="${i}">marcar pago</button>`),
-    ...ev.pagamentos.map(p => `<span class="fraco">${esc(grupo(p.de))} pagou ${brl(p.valor)} para ${esc(grupo(p.para))}</span> <button class="icone" data-desfazer="${p.id}">desfazer</button>`),
-  ].join("<br>") || (d.total ? "Ninguém deve nada: já está acertado." : "Lance os gastos para ver a divisão.");
+  $("acertos").textContent = !d.total ? "Lance os gastos para ver a divisão." : d.acertos.length ? "Clique no saldo de quem pagou para marcar." : "Ninguém deve nada: já está acertado.";
   gradeEventoGastos(ev.gastos.map(g => ({ ...g, pagador: nome(g.pago_por) })));
-  gradeEventoPessoas(d.saldos);
+  // devedor: o acerto pendente e o já pago ficam na própria linha, um botão só alterna entre os dois
+  gradeEventoPessoas(d.saldos.map(u => ({ ...u,
+    deve: d.acertos.filter(a => a.de_id === u.id).map(a => `${brl(a.valor)} para ${esc(a.para)}`).join(", "),
+    pagos: ev.pagamentos.filter(p => p.de === u.id) })));
 }
 const gradeEventoGastos = grade({
   cab: "cabEventoGastos", corpo: "linhasEventoGastos", busca: "buscaEventoGastos",
@@ -971,7 +971,9 @@ const gradeEventoPessoas = grade({
       <td class="num mono">${brl(p.pagou)}</td>
       <td class="num mono">${brl(p.parte)}</td>
       <td class="num mono">${!p.acertado ? "" : p.acertado > 0 ? `pagou ${brl(p.acertado)}` : `recebeu ${brl(-p.acertado)}`}</td>
-      <td class="num mono">${Math.abs(p.saldo) < 0.005 ? `<span class="fraco">acertado</span>` : p.saldo > 0 ? `recebe ${brl(p.saldo)}` : `paga ${brl(-p.saldo)}`}</td>
+      <td class="num mono">${p.deve ? `<button class="acerto" data-pagar="${p.id}" aria-pressed="false" title="Marcar como pago">paga ${p.deve}</button>`
+        : p.pagos.length ? `<button class="acerto pago" data-desfazer="${p.id}" aria-pressed="true" title="Desmarcar pago">✓ pagou ${brl(p.acertado)}</button>`
+        : Math.abs(p.saldo) < 0.005 ? `<span class="fraco">acertado</span>` : `recebe ${brl(p.saldo)}`}</td>
     </tr>`,
 });
 
@@ -1017,14 +1019,14 @@ $("linhasEventoGastos").addEventListener("click", tentar(async e => {
   status("Gasto excluído.");
   await carregarEventos();
 }));
-$("acertos").addEventListener("click", tentar(async e => {
-  const ev = eventoAtual(), pagar = e.target.closest("[data-pagar]")?.dataset.pagar, desfazer = e.target.closest("[data-desfazer]")?.dataset.desfazer;
+$("linhasEventoPessoas").addEventListener("click", tentar(async e => {
+  const ev = eventoAtual(), pagar = +e.target.closest("[data-pagar]")?.dataset.pagar, desfazer = +e.target.closest("[data-desfazer]")?.dataset.desfazer;
   if (pagar) {
-    const a = dividir(ev.pessoas, ev.gastos, ev.pagamentos).acertos[+pagar];
-    await json("POST", "/api/eventos/acertos", { evento_id: ev.id, de: a.de_id, para: a.para_id, valor: a.valor });
-    status(`${a.de} pagou ${a.para}.`);
+    for (const a of dividir(ev.pessoas, ev.gastos, ev.pagamentos).acertos.filter(a => a.de_id === pagar))
+      await json("POST", "/api/eventos/acertos", { evento_id: ev.id, de: a.de_id, para: a.para_id, valor: a.valor });
+    status("Marcado como pago.");
   } else if (desfazer) {
-    await api("DELETE", `/api/eventos/acertos?id=${desfazer}`);
+    for (const p of ev.pagamentos.filter(p => p.de === desfazer)) await api("DELETE", `/api/eventos/acertos?id=${p.id}`);
     status("Pagamento desfeito.");
   } else return;
   await carregarEventos();
