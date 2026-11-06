@@ -226,6 +226,7 @@
           <div><h2>Gastos</h2></div>
           <div class="filtros-grid">
             <input type="search" id="buscaEventoGastos" placeholder="Buscar gasto ou quem pagou" aria-label="Buscar gasto ou quem pagou">
+            <button class="btn" id="lerEventoRecibo" title="Lança item a item pelo link do QR code da NFC-e ou pela foto do cupom">Ler recibo</button>
             <button class="btn primary" id="novoEventoGasto">+ Gasto</button>
           </div>
         </div>
@@ -246,7 +247,7 @@
         </div>
         <div class="tabela-wrap">
           <table>
-            <thead id="cabEventoPessoas"><tr><th><button class="ordenar" data-ordem="nome">Participante</button></th><th class="num"><button class="ordenar" data-ordem="pagou">Pagou</button></th><th class="num"><button class="ordenar" data-ordem="parte">Parte</button></th><th class="num"><button class="ordenar" data-ordem="saldo">Saldo</button></th></tr></thead>
+            <thead id="cabEventoPessoas"><tr><th><button class="ordenar" data-ordem="nome">Participante</button></th><th class="num"><button class="ordenar" data-ordem="pagou">Pagou</button></th><th class="num"><button class="ordenar" data-ordem="parte">Parte</button></th><th class="num"><button class="ordenar" data-ordem="acertado">Acertado</button></th><th class="num"><button class="ordenar" data-ordem="saldo">Saldo</button></th></tr></thead>
             <tbody id="linhasEventoPessoas"></tbody>
           </table>
         </div>
@@ -453,8 +454,8 @@
       <label>Nome<input name="nome" required maxlength="100" placeholder="Ex.: Hamburgada de sábado"></label>
       <label>Data<input type="date" name="data" required></label>
     </div>
-    <label>Participantes, um por linha<textarea name="pessoas" rows="6" required placeholder="Eu&#10;Ana&#10;Beto"></textarea></label>
-    <small>A divisão é em partes iguais entre todos os participantes.</small>
+    <label>Participantes, um por linha<textarea name="pessoas" rows="6" required placeholder="Eu&#10;Ana + Beto&#10;Caio"></textarea></label>
+    <small>A divisão é em partes iguais entre todos os participantes. Casal ou família na mesma linha, com "+": cada um conta uma parte, mas a cobrança sai junta, para o grupo.</small>
     <div class="botoes"><button class="btn perigo" value="apagar" formnovalidate id="apagarEvento">Excluir</button><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
   </form>
 </dialog>
@@ -468,6 +469,27 @@
       <label>Pago por<select name="pago_por" id="eventoPagador" required></select></label>
     </div>
     <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgRecibo" class="largo">
+  <form method="dialog" id="formRecibo">
+    <h2>Ler recibo de mercado</h2>
+    <div class="duas">
+      <label>Link do QR code da NFC-e<input type="url" id="reciboLink" placeholder="https://…sefaz….gov.br/…"></label>
+      <label>ou foto do cupom<input type="file" id="reciboFoto" accept="image/jpeg,image/png,image/webp"></label>
+    </div>
+    <button type="button" class="btn" id="lerRecibo" style="justify-self: start">Ler itens</button>
+    <small id="reciboStatus" role="status"></small>
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Descrição</th><th class="num">Valor (R$)</th><th></th></tr></thead>
+        <tbody id="itensRecibo"></tbody>
+        <tfoot><tr><td>Total</td><td class="num mono" id="totalRecibo"></td><td></td></tr></tfoot>
+      </table>
+    </div>
+    <label>Pago por<select id="reciboPagador" required></select></label>
+    <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Lançar itens</button></div>
   </form>
 </dialog>
 

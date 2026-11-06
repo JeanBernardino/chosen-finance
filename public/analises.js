@@ -127,25 +127,37 @@ export function porEstabelecimento(gastos) {
 /**
  * Racha os gastos de um evento em partes iguais e diz quem paga quem.
  * Conta em centavos: o centavo que sobra da divisão vai para os primeiros da lista, e os saldos fecham em zero.
- * Acerto guloso: quem mais deve paga a quem mais tem a receber, o que dá no máximo uma transferência a menos que o nº de pessoas.
+ * Pessoas com o mesmo `grupo` (casal, família) contam uma parte cada, mas acertam juntas, em nome do grupo.
+ * `pagamentos` são acertos já feitos ({ de, para, valor } com ids de pessoa): abatem do saldo, e o que falta é recalculado.
+ * Acerto guloso: quem mais deve paga a quem mais tem a receber, o que dá no máximo uma transferência a menos que o nº de grupos.
  */
-export function dividir(pessoas, gastos) {
+export function dividir(pessoas, gastos, pagamentos = []) {
   const cent = v => Math.round(v * 100), n = pessoas.length;
   const total = gastos.reduce((s, g) => s + cent(g.valor), 0), base = n ? Math.floor(total / n) : 0;
-  const saldos = pessoas.map((p, i) => {
-    const pagou = gastos.filter(g => g.pago_por === p.id).reduce((s, g) => s + cent(g.valor), 0);
-    return { ...p, pagou, parte: base + (i < total - base * n ? 1 : 0) };
+  const unidades = new Map(), daPessoa = new Map();
+  pessoas.forEach((p, i) => {
+    const k = p.grupo ?? `#${p.id}`, u = unidades.get(k) ?? { id: p.id, nome: p.grupo ?? p.nome, pagou: 0, parte: 0, acertado: 0 };
+    u.pagou += gastos.filter(g => g.pago_por === p.id).reduce((s, g) => s + cent(g.valor), 0);
+    u.parte += base + (i < total - base * n ? 1 : 0);
+    unidades.set(k, u);
+    daPessoa.set(p.id, u);
   });
-  const fila = sinal => saldos.map(s => ({ nome: s.nome, v: (s.pagou - s.parte) * sinal })).filter(s => s.v > 0).sort((a, b) => b.v - a.v);
+  for (const a of pagamentos) {
+    const v = cent(a.valor), de = daPessoa.get(a.de), para = daPessoa.get(a.para);
+    if (de) de.acertado += v;
+    if (para) para.acertado -= v;
+  }
+  const saldos = [...unidades.values()].map(u => ({ ...u, saldo: u.pagou - u.parte + u.acertado }));
+  const fila = sinal => saldos.map(s => ({ id: s.id, nome: s.nome, v: s.saldo * sinal })).filter(s => s.v > 0).sort((a, b) => b.v - a.v);
   const deve = fila(-1), recebe = fila(1), acertos = [];
   for (let i = 0, j = 0; i < deve.length && j < recebe.length;) {
     const v = Math.min(deve[i].v, recebe[j].v);
-    acertos.push({ de: deve[i].nome, para: recebe[j].nome, valor: v / 100 });
+    acertos.push({ de: deve[i].nome, de_id: deve[i].id, para: recebe[j].nome, para_id: recebe[j].id, valor: v / 100 });
     if (!(deve[i].v -= v)) i++;
     if (!(recebe[j].v -= v)) j++;
   }
   return {
     total: total / 100, parte: n ? total / n / 100 : 0, acertos,
-    saldos: saldos.map(s => ({ ...s, pagou: s.pagou / 100, parte: s.parte / 100, saldo: (s.pagou - s.parte) / 100 })),
+    saldos: saldos.map(s => ({ ...s, pagou: s.pagou / 100, parte: s.parte / 100, acertado: s.acertado / 100, saldo: s.saldo / 100 })),
   };
 }

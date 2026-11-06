@@ -85,21 +85,25 @@ export function validarMensagens(m) {
   });
 }
 
-/** Repassa a resposta do Ollama para `res` em texto puro, pedaço a pedaço. */
-export async function conversar(mensagens, dados, res) {
-  const parar = new AbortController();
-  res.on("close", () => parar.abort()); // usuário saiu da tela: para de gerar
-  const r = await fetch(`${OLLAMA}/api/chat`, {
-    method: "POST", signal: parar.signal,
-    body: JSON.stringify({ model: MODELO, stream: true, options: { num_ctx: 16384 },
-      messages: [{ role: "system", content: SISTEMA(dados) }, ...mensagens] }),
-  }).catch(() => { throw Object.assign(new Error("Ollama não está rodando. Inicie com: brew services start ollama"), { status: 503 }); });
+/** POST no /api/chat do Ollama; falhas viram mensagem que diz o que fazer. */
+export async function ollama(corpo, signal) {
+  const r = await fetch(`${OLLAMA}/api/chat`, { method: "POST", signal, body: JSON.stringify({ model: MODELO, ...corpo }) })
+    .catch(() => { throw Object.assign(new Error("Ollama não está rodando. Inicie com: brew services start ollama"), { status: 503 }); });
   if (!r.ok) {
     const erro = (await r.json().catch(() => ({}))).error ?? `Ollama respondeu ${r.status}`;
     throw Object.assign(new Error(/not found/.test(erro) ? `modelo não baixado. Rode: ollama pull ${MODELO}`
       : /killed/.test(erro) ? "o Ollama ficou sem memória: feche outros apps ou use um modelo menor em OLLAMA_MODEL"
       : erro), { status: 502 });
   }
+  return r;
+}
+
+/** Repassa a resposta do Ollama para `res` em texto puro, pedaço a pedaço. */
+export async function conversar(mensagens, dados, res) {
+  const parar = new AbortController();
+  res.on("close", () => parar.abort()); // usuário saiu da tela: para de gerar
+  const r = await ollama({ stream: true, options: { num_ctx: 16384 },
+    messages: [{ role: "system", content: SISTEMA(dados) }, ...mensagens] }, parar.signal);
   res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
   let resto = "";
   for await (const pedaco of r.body.pipeThrough(new TextDecoderStream())) {

@@ -185,6 +185,7 @@ dialog label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
 dialog label.check { display: flex; align-items: center; gap: 8px; align-self: end; min-height: 34px; color: var(--text); }
 dialog small { color: var(--muted); }
 dialog.largo { width: min(760px, calc(100vw - 32px)); }
+#itensRecibo input { width: 100%; }
 dialog:not([open]) { display: none; }
 tfoot td { font-weight: 600; border-top: 1px solid var(--line); }
 /* layout padrão: cabeçalho e botões fixos, só o conteúdo rola */

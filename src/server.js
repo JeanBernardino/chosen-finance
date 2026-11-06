@@ -7,6 +7,7 @@ import { categorizar } from "./categorias.js";
 import { ler } from "./importadores.js";
 import { cartaoDa, PASTA, vigiar } from "./entrada.js";
 import { contexto, conversar, validarMensagens } from "./assistente.js";
+import { lerFoto, lerNfce, limparItens } from "./recibo.js";
 
 const PORT = Number(process.env.PORT || 4780);
 const PUBLIC = new URL("../public/", import.meta.url).pathname;
@@ -105,9 +106,14 @@ const rotas = {
   "GET /api/eventos": () => db.eventos(pool),
   "POST /api/eventos": async req => {
     const e = JSON.parse(await corpo(req));
-    const nome = texto(e.nome), pessoas = [...new Set((Array.isArray(e.pessoas) ? e.pessoas : []).map(texto).filter(Boolean))];
+    const nome = texto(e.nome), pessoas = [], vistos = new Set();
+    // uma linha por participante; "Ana + Beto" na mesma linha é um grupo (casal): cada um é uma parte, o acerto sai junto
+    for (const linha of (Array.isArray(e.pessoas) ? e.pessoas : []).map(texto).filter(Boolean)) {
+      const nomes = [...new Set(linha.split("+").map(texto).filter(Boolean))].filter(n => !vistos.has(n));
+      for (const n of nomes) { vistos.add(n); pessoas.push({ nome: n, grupo: nomes.length > 1 ? nomes.join(" + ") : null }); }
+    }
     if (!nome || !/^\d{4}-\d{2}-\d{2}$/.test(e.data ?? "")) throw invalido("nome e data são obrigatórios");
-    if (!pessoas.length || pessoas.length > 100 || pessoas.some(p => p.length > 60)) throw invalido("informe de 1 a 100 participantes, com até 60 letras cada");
+    if (!pessoas.length || pessoas.length > 100 || pessoas.some(p => p.nome.length > 60)) throw invalido("informe de 1 a 100 participantes, com até 60 letras cada");
     return db.salvarEvento(pool, { id: idOuNulo(e.id), nome, data: e.data, pessoas });
   },
   "DELETE /api/eventos": async (req, url) => ({ apagados: await db.apagarEvento(pool, idOuNulo(url.searchParams.get("id"))) }),
@@ -118,6 +124,30 @@ const rotas = {
     if (!(valor > 0) || valor >= 1e10) throw invalido("valor deve ser maior que zero");
     return db.salvarGastoEvento(pool, { id: idOuNulo(g.id), evento_id, descricao, valor, pago_por });
   },
+  // só lê: os itens voltam para a tela revisar antes de lançar. Com ?url é o link da NFC-e; sem, o corpo é a foto
+  "POST /api/eventos/recibo": async (req, url) => {
+    const link = url.searchParams.get("url");
+    if (link) return { itens: await lerNfce(link) };
+    const foto = await corpo(req);
+    if (!foto.length) throw invalido("envie a foto do cupom ou o link da nota");
+    return { itens: await lerFoto(foto) };
+  },
+  "POST /api/eventos/gastos/lote": async req => {
+    const g = JSON.parse(await corpo(req));
+    const evento_id = idOuNulo(g.evento_id), pago_por = idOuNulo(g.pago_por), itens = limparItens(g.itens);
+    if (!evento_id || !pago_por) throw invalido("evento e quem pagou são obrigatórios");
+    if (!itens.length || itens.length !== g.itens.length || itens.length > 500) throw invalido("cada item precisa de descrição e valor maior que zero (até 500 itens)");
+    return { novos: await db.salvarGastosEvento(pool, { evento_id, pago_por, itens }) };
+  },
+  // acerto da divisão marcado como pago: abate do saldo de quem pagou e de quem recebeu
+  "POST /api/eventos/acertos": async req => {
+    const a = JSON.parse(await corpo(req));
+    const evento_id = idOuNulo(a.evento_id), de = idOuNulo(a.de), para = idOuNulo(a.para), valor = Number(a.valor);
+    if (!evento_id || !de || !para || de === para) throw invalido("evento, quem pagou e quem recebeu são obrigatórios");
+    if (!(valor > 0) || valor >= 1e10) throw invalido("valor deve ser maior que zero");
+    return db.salvarAcerto(pool, { evento_id, de, para, valor });
+  },
+  "DELETE /api/eventos/acertos": async (req, url) => ({ apagados: await db.apagarAcerto(pool, idOuNulo(url.searchParams.get("id"))) }),
   "DELETE /api/eventos/gastos": async (req, url) => ({ apagados: await db.apagarGastoEvento(pool, idOuNulo(url.searchParams.get("id"))) }),
   "GET /api/regras": () => db.listaRegras(pool),
   // sem id: regra nova, vence todas as outras; com id: edita mantendo a prioridade

@@ -938,11 +938,15 @@ function renderEvento() {
   $("semEvento").hidden = !!ev;
   $("detalheEvento").hidden = $("eventoAtual").hidden = $("editarEvento").hidden = !ev;
   if (!ev) return;
-  const d = dividir(ev.pessoas, ev.gastos), nome = id => ev.pessoas.find(p => p.id === id)?.nome ?? "";
+  const d = dividir(ev.pessoas, ev.gastos, ev.pagamentos), nome = id => ev.pessoas.find(p => p.id === id)?.nome ?? "";
+  const grupo = id => { const p = ev.pessoas.find(p => p.id === id); return p?.grupo ?? p?.nome ?? ""; };
   $("kpisEvento").innerHTML = `
     <div class="kpi destaque"><span>Gasto total</span><strong>${brl(d.total)}</strong><small>${ev.gastos.length} gastos</small></div>
     <div class="kpi"><span>Por pessoa</span><strong>${brl(d.parte)}</strong><small>${ev.pessoas.length} participantes</small></div>`;
-  $("acertos").innerHTML = d.acertos.map(a => `${esc(a.de)} paga ${brl(a.valor)} para ${esc(a.para)}`).join("<br>") || (d.total ? "Ninguém deve nada: já está acertado." : "Lance os gastos para ver a divisão.");
+  $("acertos").innerHTML = [
+    ...d.acertos.map((a, i) => `${esc(a.de)} paga ${brl(a.valor)} para ${esc(a.para)} <button class="icone" data-pagar="${i}">marcar pago</button>`),
+    ...ev.pagamentos.map(p => `<span class="fraco">${esc(grupo(p.de))} pagou ${brl(p.valor)} para ${esc(grupo(p.para))}</span> <button class="icone" data-desfazer="${p.id}">desfazer</button>`),
+  ].join("<br>") || (d.total ? "Ninguém deve nada: já está acertado." : "Lance os gastos para ver a divisão.");
   gradeEventoGastos(ev.gastos.map(g => ({ ...g, pagador: nome(g.pago_por) })));
   gradeEventoPessoas(d.saldos);
 }
@@ -966,6 +970,7 @@ const gradeEventoPessoas = grade({
       <td>${esc(p.nome)}</td>
       <td class="num mono">${brl(p.pagou)}</td>
       <td class="num mono">${brl(p.parte)}</td>
+      <td class="num mono">${!p.acertado ? "" : p.acertado > 0 ? `pagou ${brl(p.acertado)}` : `recebeu ${brl(-p.acertado)}`}</td>
       <td class="num mono">${Math.abs(p.saldo) < 0.005 ? `<span class="fraco">acertado</span>` : p.saldo > 0 ? `recebe ${brl(p.saldo)}` : `paga ${brl(-p.saldo)}`}</td>
     </tr>`,
 });
@@ -977,7 +982,8 @@ function abrirEvento(ev = { data: hoje(), pessoas: [{ nome: "Eu" }] }) {
   $("apagarEvento").hidden = !ev.id;
   f.elements.nome.value = ev.nome ?? "";
   f.elements.data.value = ev.data;
-  f.elements.pessoas.value = ev.pessoas.map(p => p.nome).join("\n");
+  // casal volta para a mesma linha, como foi digitado
+  f.elements.pessoas.value = [...new Set(ev.pessoas.map(p => p.grupo ?? p.nome))].join("\n");
   $("dlgEvento").showModal();
 }
 function abrirEventoGasto(g = {}) {
@@ -995,7 +1001,7 @@ $("novoEvento").addEventListener("click", () => abrirEvento());
 $("editarEvento").addEventListener("click", () => abrirEvento(eventoAtual()));
 $("novoEventoGasto").addEventListener("click", () => abrirEventoGasto());
 $("copiarDivisao").addEventListener("click", tentar(async () => {
-  const ev = eventoAtual(), d = dividir(ev.pessoas, ev.gastos);
+  const ev = eventoAtual(), d = dividir(ev.pessoas, ev.gastos, ev.pagamentos);
   // moeda direto: o resumo vai para o grupo com os valores, mesmo com a tela ocultando
   await navigator.clipboard.writeText([`${ev.nome} (${dataBr(ev.data)})`, `Total: ${moeda(d.total)} · ${moeda(d.parte)} por pessoa`, "",
     ...ev.gastos.map(g => `- ${g.descricao}: ${moeda(g.valor)} (${ev.pessoas.find(p => p.id === g.pago_por)?.nome})`), "",
@@ -1009,6 +1015,62 @@ $("linhasEventoGastos").addEventListener("click", tentar(async e => {
   if (!apagar || !confirm("Excluir este gasto?")) return;
   await api("DELETE", `/api/eventos/gastos?id=${apagar}`);
   status("Gasto excluído.");
+  await carregarEventos();
+}));
+$("acertos").addEventListener("click", tentar(async e => {
+  const ev = eventoAtual(), pagar = e.target.closest("[data-pagar]")?.dataset.pagar, desfazer = e.target.closest("[data-desfazer]")?.dataset.desfazer;
+  if (pagar) {
+    const a = dividir(ev.pessoas, ev.gastos, ev.pagamentos).acertos[+pagar];
+    await json("POST", "/api/eventos/acertos", { evento_id: ev.id, de: a.de_id, para: a.para_id, valor: a.valor });
+    status(`${a.de} pagou ${a.para}.`);
+  } else if (desfazer) {
+    await api("DELETE", `/api/eventos/acertos?id=${desfazer}`);
+    status("Pagamento desfeito.");
+  } else return;
+  await carregarEventos();
+}));
+
+// recibo de mercado: lê os itens (link da NFC-e ou foto), a pessoa revisa e lança tudo de uma vez
+const linhaRecibo = i => `
+  <tr>
+    <td><input name="descricao" required maxlength="200" value="${esc(i.descricao)}" aria-label="Descrição"></td>
+    <td class="num"><input type="number" name="valor" min="0.01" step="0.01" inputmode="decimal" required value="${i.valor}" aria-label="Valor"></td>
+    <td class="acoes"><button type="button" class="icone perigo" data-tirar>tirar</button></td>
+  </tr>`;
+const totalRecibo = () => $("totalRecibo").textContent = brl([...$("itensRecibo").querySelectorAll("[name=valor]")].reduce((s, i) => s + (Number(i.value) || 0), 0));
+$("lerEventoRecibo").addEventListener("click", () => {
+  const ev = eventoAtual();
+  $("formRecibo").reset();
+  $("itensRecibo").innerHTML = "";
+  $("reciboPagador").innerHTML = ev.pessoas.map(p => `<option value="${p.id}">${esc(p.nome)}</option>`).join("");
+  $("reciboStatus").textContent = "Cole o link do QR code da nota ou escolha a foto do cupom.";
+  totalRecibo();
+  $("dlgRecibo").showModal();
+});
+$("lerRecibo").addEventListener("click", async () => {
+  const link = $("reciboLink").value.trim(), foto = $("reciboFoto").files[0];
+  if (!link && !foto) return $("reciboStatus").textContent = "Cole o link ou escolha a foto.";
+  $("lerRecibo").disabled = true;
+  $("reciboStatus").textContent = link ? "Buscando a nota na SEFAZ…" : "Lendo a foto no Ollama (pode levar um minuto)…";
+  try {
+    const { itens } = link ? await api("POST", `/api/eventos/recibo?url=${encodeURIComponent(link)}`) : await api("POST", "/api/eventos/recibo", foto);
+    $("itensRecibo").insertAdjacentHTML("beforeend", itens.map(linhaRecibo).join(""));
+    $("reciboStatus").textContent = `${itens.length} itens lidos.${link ? "" : " A foto pode ter erro de leitura: confira descrição e valor."}`;
+  } catch (err) {
+    $("reciboStatus").textContent = err.message;
+  } finally {
+    $("lerRecibo").disabled = false;
+    totalRecibo();
+  }
+});
+$("itensRecibo").addEventListener("click", e => { if (e.target.closest("[data-tirar]")) { e.target.closest("tr").remove(); totalRecibo(); } });
+$("itensRecibo").addEventListener("input", totalRecibo);
+$("dlgRecibo").addEventListener("close", tentar(async () => {
+  if ($("dlgRecibo").returnValue !== "ok") return;
+  const itens = [...$("itensRecibo").rows].map(r => ({ descricao: r.querySelector("[name=descricao]").value, valor: r.querySelector("[name=valor]").value }));
+  if (!itens.length) return status("Nenhum item para lançar.", true);
+  const { novos } = await json("POST", "/api/eventos/gastos/lote", { evento_id: eventoAtual().id, pago_por: $("reciboPagador").value, itens });
+  status(`${novos} itens do recibo lançados.`);
   await carregarEventos();
 }));
 $("dlgEvento").addEventListener("close", tentar(async () => {
