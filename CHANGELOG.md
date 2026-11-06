@@ -3,6 +3,13 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.24.0] - 2026-11-06
+
+### Novo
+- **Eventos**: nova seção no menu para rachar os gastos de um churrasco, hamburgada ou viagem. Cadastre os participantes, lance cada gasto com quem pagou e veja quanto cada um deve, quanto tem a receber e quem paga quem para acertar tudo com o mínimo de transferências.
+- A divisão é em partes iguais entre todos os participantes; **Copiar resumo** copia a conta pronta para colar no grupo.
+- Os eventos ficam separados das faturas e dos gastos manuais: não entram na visão geral.
+
 ## [0.23.0] - 2026-11-06
 
 ### Melhorado
