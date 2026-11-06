@@ -6,6 +6,11 @@ Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### C
 
 
 
+
+## [0.32.1] - 2026-11-06
+
+### Corrigido
+- **Quem recebe o Pix** agora é uma lista com os participantes do evento. Antes, o nome digitado tinha que bater letra por letra, e o evento não salvava.
 ## [0.32.0] - 2026-11-06
 
 ### Melhorado
