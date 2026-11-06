@@ -934,6 +934,7 @@ const eventoAtual = () => eventos.find(e => e.id === aberto);
 let souEu = () => false;
 async function carregarEventos(id) {
   if (id !== undefined) aberto = id;
+  let titular;
   [eventos, { titular }] = await Promise.all([api("GET", "/api/eventos"), api("GET", "/api/pix")]);
   // quem é você na divisão: "Eu" (padrão do evento novo), o titular do Pix ou o primeiro nome dele
   const sem = n => n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
