@@ -186,7 +186,7 @@
 
   <section data-view="gastos" hidden>
     <header class="cabecalho">
-      <div><h1>Gastos manuais</h1><p class="sub">Seu controle do dia a dia, anotado na hora. Separado das faturas: não entra na visão geral.</p></div>
+      <div><h1>Gastos manuais</h1><p class="sub">Seu controle do dia a dia em dinheiro, anotado na hora. Separado das faturas: não entra na visão geral.</p></div>
       <div class="filtros">
         <select id="mesGastos" aria-label="Mês"></select>
         <button class="btn primary" id="novoGasto">+ Novo gasto</button>
@@ -197,12 +197,11 @@
       <div class="card-topo">
         <div class="filtros-grid">
           <input type="search" id="buscaGastos" placeholder="Buscar descrição ou categoria" aria-label="Buscar descrição ou categoria">
-          <select id="cartaoGastos" aria-label="Filtrar cartão"></select>
         </div>
       </div>
       <div class="tabela-wrap">
         <table>
-          <thead id="cabGastos"><tr><th><button class="ordenar" data-ordem="data">Data</button></th><th><button class="ordenar" data-ordem="descricao">Descrição</button></th><th><button class="ordenar" data-ordem="categoria">Categoria</button></th><th><button class="ordenar" data-ordem="origem">Pago com</button></th><th class="num"><button class="ordenar" data-ordem="valor">Valor</button></th><th></th></tr></thead>
+          <thead id="cabGastos"><tr><th><button class="ordenar" data-ordem="data">Data</button></th><th><button class="ordenar" data-ordem="descricao">Descrição</button></th><th><button class="ordenar" data-ordem="categoria">Categoria</button></th><th class="num"><button class="ordenar" data-ordem="valor">Valor</button></th><th></th></tr></thead>
           <tbody id="linhasGastos"></tbody>
         </table>
       </div>
@@ -344,7 +343,7 @@
 
   <section data-view="cartoes" hidden>
     <header class="cabecalho">
-      <div><h1>Cartões</h1><p class="sub">Cartão desativado some da importação e dos gastos manuais, mas o histórico continua no painel.</p></div>
+      <div><h1>Cartões</h1><p class="sub">Cartão desativado some da importação, mas o histórico continua no painel.</p></div>
       <button class="btn primary" id="novoCartao">+ Novo cartão</button>
     </header>
     <div id="listaCartoes" class="cartoes"></div>
@@ -439,10 +438,7 @@
       <label>Valor (R$)<input type="number" name="valor" min="0.01" step="0.01" inputmode="decimal" required></label>
     </div>
     <label>Descrição<input name="descricao" required maxlength="200"></label>
-    <div class="duas">
-      <label>Categoria<input name="categoria" list="listaCategorias" required></label>
-      <label>Pago com<select name="cartao_id" id="gastoCartao"></select></label>
-    </div>
+    <label>Categoria<input name="categoria" list="listaCategorias" required></label>
     <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
   </form>
 </dialog>

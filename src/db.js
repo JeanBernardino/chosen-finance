@@ -42,8 +42,8 @@ export async function migrar(db) {
       descricao text not null,
       valor     numeric(12,2) not null check (valor > 0),  -- positivo = quanto saiu
       categoria text not null,
-      cartao_id int references cartao,                       -- só informativo: o painel é das faturas
       criado_em timestamptz not null default now());
+    alter table gasto_manual drop column if exists cartao_id;  -- gasto manual é sempre em dinheiro, sem cartão
     create table if not exists orcamento (
       categoria text primary key,
       limite    numeric(12,2) not null check (limite > 0));  -- por mês, sobre os gastos das faturas
@@ -141,16 +141,15 @@ export async function salvarCartao(db, { id, nome, banco, cor, ativo }) {
 
 /** Só apaga cartão sem lançamentos; com histórico, o caminho é desativar. */
 export const apagarCartao = async (db, id) =>
-  (await db.query("delete from cartao c where id = $1 and not exists (select 1 from transacao where cartao_id = c.id) and not exists (select 1 from gasto_manual where cartao_id = c.id)", [id])).rowCount;
+  (await db.query("delete from cartao c where id = $1 and not exists (select 1 from transacao where cartao_id = c.id)", [id])).rowCount;
 
-export const gastosManuais = async db => (await db.query(`
-  select g.*, c.nome as cartao, c.cor from gasto_manual g left join cartao c on c.id = g.cartao_id order by g.data desc, g.id desc`)).rows;
+export const gastosManuais = async db => (await db.query("select * from gasto_manual order by data desc, id desc")).rows;
 
-export async function salvarGasto(db, { id, data, descricao, valor, categoria, cartao_id }) {
-  const v = [data, descricao, valor, categoria, cartao_id];
+export async function salvarGasto(db, { id, data, descricao, valor, categoria }) {
+  const v = [data, descricao, valor, categoria];
   return (await (id
-    ? db.query("update gasto_manual set data = $1, descricao = $2, valor = $3, categoria = $4, cartao_id = $5 where id = $6 returning *", [...v, id])
-    : db.query("insert into gasto_manual (data, descricao, valor, categoria, cartao_id) values ($1, $2, $3, $4, $5) returning *", v))).rows[0];
+    ? db.query("update gasto_manual set data = $1, descricao = $2, valor = $3, categoria = $4 where id = $5 returning *", [...v, id])
+    : db.query("insert into gasto_manual (data, descricao, valor, categoria) values ($1, $2, $3, $4) returning *", v))).rows[0];
 }
 
 export const apagarGasto = async (db, id) => (await db.query("delete from gasto_manual where id = $1", [id])).rowCount;

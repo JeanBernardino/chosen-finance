@@ -80,7 +80,7 @@ const rotas = {
     const descricao = texto(g.descricao), categoria = texto(g.categoria), valor = Number(g.valor);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(g.data ?? "") || !descricao || !categoria) throw invalido("data, descrição e categoria são obrigatórias");
     if (!(valor > 0) || valor >= 1e10) throw invalido("valor deve ser maior que zero");
-    return db.salvarGasto(pool, { id: idOuNulo(g.id), data: g.data, descricao, valor, categoria, cartao_id: idOuNulo(g.cartao_id) });
+    return db.salvarGasto(pool, { id: idOuNulo(g.id), data: g.data, descricao, valor, categoria });
   },
   "DELETE /api/gastos": async (req, url) => ({ apagados: await db.apagarGasto(pool, idOuNulo(url.searchParams.get("id"))) }),
   "GET /api/orcamentos": () => db.orcamentos(pool),

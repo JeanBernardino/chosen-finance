@@ -360,10 +360,10 @@ function renderComparar() {
 
   // categoria x mês: cada célula com a variação contra o mês anterior da mesma categoria
   const cel = new Map();
-  for (const t of gastos.filter(t => t.mes >= mesAnterior(de) && t.mes <= ate))
+  for (const t of lista.filter(t => t.mes >= mesAnterior(de) && t.mes <= ate))
     cel.set(`${t.categoria}|${t.mes}`, (cel.get(`${t.categoria}|${t.mes}`) ?? 0) - t.valor);
   const v = (c, m) => cel.get(`${c}|${m}`) ?? 0;
-  const cats = [...new Set(gastos.filter(t => span.includes(t.mes)).map(t => t.categoria))]
+  const cats = [...new Set(lista.filter(t => span.includes(t.mes)).map(t => t.categoria))]
     .map(c => [c, span.reduce((s, m) => s + v(c, m), 0)]).sort((x, y) => y[1] - x[1]);
   $("cmpBase").textContent = "Cada mês contra o anterior. Clique num valor para ver os estabelecimentos";
   $("cmpCab").innerHTML = `<tr><th><button class="ordenar" data-ordem="categoria">Categoria</button></th>${span.map(m =>
@@ -853,7 +853,7 @@ $("dlgOrcamento").addEventListener("close", tentar(async () => {
 
 // ---------- gastos manuais ----------
 async function carregarGastos() {
-  [gastos, cartoes] = await Promise.all([api("GET", "/api/gastos"), api("GET", "/api/cartoes")]);
+  gastos = await api("GET", "/api/gastos");
   const meses = [...new Set([hoje().slice(0, 7), ...gastos.map(g => g.data.slice(0, 7))])].sort().reverse();
   const atual = $("mesGastos").value || hoje().slice(0, 7);
   $("mesGastos").innerHTML = meses.map(m => `<option value="${m}">${nomeMes(m)}</option>`).join("") + `<option value="">Todo o período</option>`;
@@ -868,28 +868,23 @@ function renderGastos() {
   const doMes = m => gastos.filter(g => !m || g.data.startsWith(m));
   const lista = doMes(mes);
   const total = lista.reduce((s, g) => s + g.valor, 0);
-  const noCartao = lista.filter(g => g.cartao_id).reduce((s, g) => s + g.valor, 0);
   const porCat = Object.entries(lista.reduce((a, g) => (a[g.categoria] = (a[g.categoria] ?? 0) + g.valor, a), {})).sort((a, b) => b[1] - a[1]);
   const anterior = mes && mesAnterior(mes);
   $("kpisGastos").innerHTML = `
     <div class="kpi destaque"><span>Gasto ${mes ? `em ${nomeMes(mes)}` : "no período"}</span><strong>${brl(total)}</strong>
       ${mes ? delta(total, doMes(anterior).reduce((s, g) => s + g.valor, 0), anterior) : `<small>${lista.length} lançamentos</small>`}</div>
-    <div class="kpi"><span>Pix, dinheiro, débito</span><strong>${brl(total - noCartao)}</strong><small>${total ? ((total - noCartao) / total * 100).toFixed(0) : 0}% do mês</small></div>
-    <div class="kpi"><span>No cartão</span><strong>${brl(noCartao)}</strong><small>${total ? (noCartao / total * 100).toFixed(0) : 0}% do mês</small></div>
     <div class="kpi"><span>Maior categoria</span><strong>${porCat[0] ? brl(porCat[0][1]) : "—"}</strong><small>${esc(porCat[0]?.[0] ?? "nenhum gasto")}</small></div>`;
-  // origem: o filtro de cartão da grade separa por ela
-  gradeGastos(lista.map(g => ({ ...g, origem: g.cartao ?? "Pix / dinheiro / débito" })));
+  gradeGastos(lista);
 }
 const gradeGastos = grade({
-  cab: "cabGastos", corpo: "linhasGastos", busca: "buscaGastos", cartao: "cartaoGastos",
+  cab: "cabGastos", corpo: "linhasGastos", busca: "buscaGastos",
   chaves: { descricao: g => g.descricao.toLowerCase(), categoria: g => g.categoria.toLowerCase() },
-  ordem: { campo: "data", dir: -1 }, texto: g => `${g.descricao} ${g.categoria}`, colunas: 6, vazio: "Nenhum gasto com esses filtros.",
+  ordem: { campo: "data", dir: -1 }, texto: g => `${g.descricao} ${g.categoria}`, colunas: 5, vazio: "Nenhum gasto com esses filtros.",
   linha: g => `
     <tr>
       <td class="mono">${dataBr(g.data)}</td>
       <td>${esc(g.descricao)}</td>
       <td><span class="tag">${esc(g.categoria)}</span></td>
-      <td>${g.cartao ? `<span class="badge"><i class="ponto" style="--cor:${esc(g.cor)}"></i>${esc(g.cartao)}</span>` : `<span class="fraco">${g.origem}</span>`}</td>
       <td class="num mono">${brl(g.valor)}</td>
       <td class="acoes"><button class="icone" data-editar="${g.id}">editar</button><button class="icone perigo" data-apagar="${g.id}">excluir</button></td>
     </tr>`,
@@ -899,11 +894,7 @@ function abrirGasto(g = { data: hoje() }) {
   const f = $("formGasto");
   f.dataset.id = g.id ?? "";
   $("tGasto").textContent = g.id ? "Editar gasto" : "Novo gasto";
-  // cartão inativo continua na lista só se for o do gasto em edição
-  $("gastoCartao").innerHTML = `<option value="">Pix, dinheiro ou débito</option>` + cartoes.filter(c => c.ativo || c.id === g.cartao_id)
-    .map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join("");
   for (const k of ["data", "valor", "descricao", "categoria"]) f.elements[k].value = g[k] ?? "";
-  f.elements.cartao_id.value = g.cartao_id ?? "";
   $("dlgGasto").showModal();
 }
 $("novoGasto").addEventListener("click", () => abrirGasto());
