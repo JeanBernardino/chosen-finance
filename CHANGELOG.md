@@ -4,6 +4,11 @@ Cada versão vira um release no GitHub com estas notas e aparece em **Novidades*
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
 
+
+## [0.31.1] - 2026-11-06
+
+### Corrigido
+- A tela de **Eventos** voltou a abrir: na 0.31.0 ela parava com o erro "titular is not defined".
 ## [0.31.0] - 2026-11-06
 
 ### Novo
