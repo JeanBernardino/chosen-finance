@@ -3,7 +3,15 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
-## [0.24.1] - 2026-11-06
+## [0.25.0] - 2026-11-06
+
+### Novo
+- **Ler recibo** nos eventos: cole o link do QR code da NFC-e ou escolha a foto do cupom, confira os itens lidos e lance todos de uma vez, cada produto como um gasto, com quem pagou o recibo.
+- A foto é lida pelo modelo local do Ollama (nada sai da máquina) e pode errar: edite ou tire itens antes de lançar. O link da nota busca os valores exatos na SEFAZ.
+- **Casais e famílias**: escreva `Ana + Beto` na mesma linha dos participantes. Cada um conta uma parte, mas a cobrança sai uma só, para o grupo.
+- **Marcar pago** em cada acerto da divisão: o pagamento abate do saldo, a coluna **Acertado** mostra o que já foi pago ou recebido, e **desfazer** volta atrás.
+
+ - 2026-11-06
 
 ### Corrigido
 - Quando o servidor está desatualizado em relação à tela, o erro agora diz o que aconteceu em vez de "is not valid JSON". Se aparecer, reinicie o servidor.
