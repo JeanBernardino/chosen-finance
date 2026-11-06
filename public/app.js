@@ -931,9 +931,13 @@ let eventos = [];
 let aberto = null; // id do evento no detalhe; null = grade com todos
 const eventoAtual = () => eventos.find(e => e.id === aberto);
 /** `id` abre o detalhe desse evento; null volta para a grade; sem argumento mantém onde está. */
+let souEu = () => false;
 async function carregarEventos(id) {
   if (id !== undefined) aberto = id;
-  eventos = await api("GET", "/api/eventos");
+  [eventos, { titular }] = await Promise.all([api("GET", "/api/eventos"), api("GET", "/api/pix")]);
+  // quem é você na divisão: "Eu" (padrão do evento novo), o titular do Pix ou o primeiro nome dele
+  const sem = n => n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  souEu = !titular ? () => false : n => ["eu", sem(titular), sem(titular).split(/\s+/)[0]].includes(sem(n));
   renderEvento();
 }
 function renderEvento() {
@@ -946,6 +950,7 @@ function renderEvento() {
   $("nomeEvento").textContent = `${ev.nome} · ${dataBr(ev.data)}${ev.ativo ? "" : " (inativo)"}`;
   const d = dividir(ev.pessoas, ev.gastos, ev.pagamentos), nome = id => ev.pessoas.find(p => p.id === id)?.nome ?? "";
   const grupo = id => { const p = ev.pessoas.find(p => p.id === id); return p?.grupo ?? p?.nome ?? ""; };
+  const paraMim = id => ev.pessoas.some(p => (p.grupo ?? p.nome) === grupo(id) && souEu(p.nome));
   $("kpisEvento").innerHTML = `
     <div class="kpi destaque"><span>Gasto total</span><strong>${brl(d.total)}</strong><small>${ev.gastos.length} gastos</small></div>
     <div class="kpi"><span>Por pessoa</span><strong>${brl(d.parte)}</strong><small>${ev.pessoas.length} participantes</small></div>`;
@@ -954,6 +959,7 @@ function renderEvento() {
   // devedor: o acerto pendente e o já pago ficam na própria linha, um botão só alterna entre os dois
   gradeEventoPessoas(d.saldos.map(u => ({ ...u,
     deve: d.acertos.filter(a => a.de_id === u.id).map(a => `${brl(a.valor)} para ${esc(a.para)}`).join(", "),
+    pix: Math.round(d.acertos.filter(a => a.de_id === u.id && paraMim(a.para_id)).reduce((s, a) => s + a.valor, 0) * 100) / 100,
     pagos: ev.pagamentos.filter(p => p.de === u.id) })));
 }
 const gradeEventos = grade({
@@ -1002,7 +1008,7 @@ const gradeEventoPessoas = grade({
       <td class="num mono">${brl(p.pagou)}</td>
       <td class="num mono">${brl(p.parte)}</td>
       <td class="num mono">${!p.acertado ? "" : p.acertado > 0 ? `pagou ${brl(p.acertado)}` : `recebeu ${brl(-p.acertado)}`}</td>
-      <td class="num mono">${p.deve ? `<button class="acerto" data-pagar="${p.id}" aria-pressed="false" title="Marcar como pago">paga ${p.deve}</button>`
+      <td class="num mono">${p.deve ? `<button class="acerto" data-pagar="${p.id}" aria-pressed="false" title="Marcar como pago">paga ${p.deve}</button>${p.pix ? ` <button class="icone" data-pix="${p.pix}" data-nome="${esc(p.nome)}" title="QR Code Pix da cobrança">Pix</button>` : ""}`
         : p.pagos.length ? `<button class="acerto pago" data-desfazer="${p.id}" aria-pressed="true" title="Desmarcar pago">✓ pagou ${brl(p.acertado)}</button>`
         : Math.abs(p.saldo) < 0.005 ? `<span class="fraco">acertado</span>` : `recebe ${brl(p.saldo)}`}</td>
     </tr>`,
@@ -1046,6 +1052,17 @@ $("zerarEvento").addEventListener("click", tentar(async () => {
 }));
 $("excluirEvento").addEventListener("click", tentar(() => excluirEvento(eventoAtual())));
 $("novoEventoGasto").addEventListener("click", () => abrirEventoGasto());
+async function cobrarPix(nome, valor) {
+  const c = await api("GET", `/api/pix/cobranca?valor=${valor}`);
+  $("tPix").textContent = `${nome} paga ${moeda(valor)}`;
+  $("pixQr").innerHTML = c.svg;  // SVG gerado no nosso servidor a partir do BR Code
+  $("pixCopiaCola").value = c.copiaCola;
+  $("dlgPix").showModal();
+}
+$("copiarPix").addEventListener("click", tentar(async () => {
+  await navigator.clipboard.writeText($("pixCopiaCola").value);
+  status("Pix copia e cola copiado.");
+}));
 $("copiarDivisao").addEventListener("click", tentar(async () => {
   const ev = eventoAtual(), d = dividir(ev.pessoas, ev.gastos, ev.pagamentos);
   // moeda direto: o resumo vai para o grupo com os valores, mesmo com a tela ocultando
@@ -1064,6 +1081,8 @@ $("linhasEventoGastos").addEventListener("click", tentar(async e => {
   await carregarEventos();
 }));
 $("linhasEventoPessoas").addEventListener("click", tentar(async e => {
+  const pix = e.target.closest("[data-pix]");
+  if (pix) return cobrarPix(pix.dataset.nome, +pix.dataset.pix);
   const ev = eventoAtual(), pagar = +e.target.closest("[data-pagar]")?.dataset.pagar, desfazer = +e.target.closest("[data-desfazer]")?.dataset.desfazer;
   if (pagar) {
     for (const a of dividir(ev.pessoas, ev.gastos, ev.pagamentos).acertos.filter(a => a.de_id === pagar))
