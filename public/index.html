@@ -213,15 +213,30 @@
     <header class="cabecalho">
       <div><h1>Eventos</h1><p class="sub">Churrasco, hamburgada, viagem: anote os gastos e quem pagou, e no fim veja quanto cada um acerta. Separado das faturas.</p></div>
       <div class="filtros">
-        <select id="eventoAtual" aria-label="Evento"></select>
-        <button class="btn" id="editarEvento">Editar evento</button>
-        <button class="btn perigo" id="zerarEvento" title="Apaga gastos e pagamentos; mantém o evento e os participantes">Zerar</button>
-        <button class="btn perigo" id="excluirEvento">Excluir evento</button>
+        <button class="btn so-detalhe" id="voltarEventos">← Todos os eventos</button>
+        <button class="btn so-detalhe" id="editarEvento">Editar evento</button>
+        <button class="btn perigo so-detalhe" id="zerarEvento" title="Apaga gastos e pagamentos; mantém o evento e os participantes">Zerar</button>
+        <button class="btn perigo so-detalhe" id="excluirEvento">Excluir evento</button>
         <button class="btn primary" id="novoEvento">+ Novo evento</button>
       </div>
     </header>
-    <div id="semEvento" class="vazio card" hidden><h2>Nenhum evento ainda</h2><p>Crie um com os participantes e vá lançando os gastos.</p></div>
+    <article class="card" id="listaEventos">
+      <div class="card-topo">
+        <div><h2>Eventos</h2><p class="sub">Clique num evento para ver os gastos e a divisão. Inative quando ele terminar.</p></div>
+        <div class="filtros-grid">
+          <input type="search" id="buscaEventos" placeholder="Buscar evento" aria-label="Buscar evento">
+          <label class="check"><input type="checkbox" id="eventosInativos"> Mostrar inativos</label>
+        </div>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead id="cabEventos"><tr><th><button class="ordenar" data-ordem="nome">Evento</button></th><th><button class="ordenar" data-ordem="data">Data</button></th><th class="num"><button class="ordenar" data-ordem="participantes">Participantes</button></th><th class="num"><button class="ordenar" data-ordem="total">Total</button></th><th><button class="ordenar" data-ordem="ativo">Situação</button></th><th></th></tr></thead>
+          <tbody id="linhasEventos"></tbody>
+        </table>
+      </div>
+    </article>
     <div id="detalheEvento" hidden>
+      <h2 id="nomeEvento"></h2>
       <div class="kpis" id="kpisEvento"></div>
       <article class="card">
         <div class="card-topo">

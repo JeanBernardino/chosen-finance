@@ -48,7 +48,7 @@ for (const d of document.querySelectorAll("dialog")) {
 }
 
 // ---------- navegação e tema ----------
-const VIEWS = { painel: () => carregar(true), comparar: () => carregarComparar(), compromissos: () => carregarCompromissos(), gastos: () => carregarGastos(), eventos: () => carregarEventos(), importar: () => carregarImportacoes(), cartoes: () => carregarCartoes(),
+const VIEWS = { painel: () => carregar(true), comparar: () => carregarComparar(), compromissos: () => carregarCompromissos(), gastos: () => carregarGastos(), eventos: () => carregarEventos(null), importar: () => carregarImportacoes(), cartoes: () => carregarCartoes(),
   config: () => carregarRegras(), novidades: () => carregarNovidades() };
 function rota() {
   const v = VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : "painel";
@@ -58,6 +58,8 @@ function rota() {
   tentar(VIEWS[v])();
 }
 window.addEventListener("hashchange", rota);
+// clicar na tela em que já está recarrega do começo (ex.: Eventos volta do detalhe para a grade)
+document.querySelector(".menu").addEventListener("click", e => { if (e.target.closest("a")?.hash === location.hash) rota(); });
 
 const escuro = () => (document.documentElement.dataset.theme ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
 const rotuloTema = () => $("tema").querySelector("span").textContent = escuro() ? "Tema claro" : "Tema escuro";
@@ -926,19 +928,22 @@ $("dlgGasto").addEventListener("close", tentar(async () => {
 
 // ---------- eventos: gastos rachados entre os participantes ----------
 let eventos = [];
-const eventoAtual = () => eventos.find(e => e.id === +$("eventoAtual").value);
+let aberto = null; // id do evento no detalhe; null = grade com todos
+const eventoAtual = () => eventos.find(e => e.id === aberto);
+/** `id` abre o detalhe desse evento; null volta para a grade; sem argumento mantém onde está. */
 async function carregarEventos(id) {
+  if (id !== undefined) aberto = id;
   eventos = await api("GET", "/api/eventos");
-  const atual = id ?? +$("eventoAtual").value;
-  $("eventoAtual").innerHTML = eventos.map(e => `<option value="${e.id}">${esc(e.nome)} · ${dataBr(e.data)}</option>`).join("");
-  $("eventoAtual").value = eventos.some(e => e.id === atual) ? atual : eventos[0]?.id ?? "";
   renderEvento();
 }
 function renderEvento() {
   const ev = eventoAtual();
-  $("semEvento").hidden = !!ev;
-  $("detalheEvento").hidden = $("eventoAtual").hidden = $("editarEvento").hidden = $("zerarEvento").hidden = $("excluirEvento").hidden = !ev;
-  if (!ev) return;
+  $("listaEventos").hidden = !!ev;
+  $("detalheEvento").hidden = !ev;
+  for (const b of document.querySelectorAll("[data-view=eventos] .so-detalhe")) b.hidden = !ev;
+  if (!ev) return gradeEventos(eventos.filter(e => e.ativo || $("eventosInativos").checked).map(e => ({ ...e,
+    participantes: e.pessoas.length, total: e.gastos.reduce((s, g) => s + g.valor, 0) })));
+  $("nomeEvento").textContent = `${ev.nome} · ${dataBr(ev.data)}${ev.ativo ? "" : " (inativo)"}`;
   const d = dividir(ev.pessoas, ev.gastos, ev.pagamentos), nome = id => ev.pessoas.find(p => p.id === id)?.nome ?? "";
   const grupo = id => { const p = ev.pessoas.find(p => p.id === id); return p?.grupo ?? p?.nome ?? ""; };
   $("kpisEvento").innerHTML = `
@@ -951,6 +956,31 @@ function renderEvento() {
     deve: d.acertos.filter(a => a.de_id === u.id).map(a => `${brl(a.valor)} para ${esc(a.para)}`).join(", "),
     pagos: ev.pagamentos.filter(p => p.de === u.id) })));
 }
+const gradeEventos = grade({
+  cab: "cabEventos", corpo: "linhasEventos", busca: "buscaEventos",
+  chaves: { nome: e => e.nome.toLowerCase() }, ordem: { campo: "data", dir: -1 }, texto: e => e.nome,
+  vazio: "Nenhum evento. Crie um em + Novo evento.",
+  linha: e => `
+    <tr>
+      <td><button class="btn link" data-abrir="${e.id}">${esc(e.nome)}</button></td>
+      <td>${dataBr(e.data)}</td>
+      <td class="num mono">${e.participantes}</td>
+      <td class="num mono">${brl(e.total)}</td>
+      <td><span class="situacao ${e.ativo ? "on" : "off"}">${e.ativo ? "Ativo" : "Inativo"}</span></td>
+      <td class="acoes"><button class="icone" data-alternar="${e.id}">${e.ativo ? "inativar" : "ativar"}</button><button class="icone perigo" data-apagar="${e.id}">excluir</button></td>
+    </tr>`,
+});
+$("eventosInativos").addEventListener("change", renderEvento);
+$("voltarEventos").addEventListener("click", tentar(() => carregarEventos(null)));
+$("linhasEventos").addEventListener("click", tentar(async e => {
+  const b = e.target.closest("button"), ev = b && eventos.find(x => x.id === +(b.dataset.abrir ?? b.dataset.alternar ?? b.dataset.apagar));
+  if (!ev) return;
+  if (b.dataset.abrir) return carregarEventos(ev.id);
+  if (b.dataset.apagar) return excluirEvento(ev);
+  await json("POST", "/api/eventos/ativo", { id: ev.id, ativo: !ev.ativo });
+  status(`${ev.nome} ${ev.ativo ? "inativado" : "ativado"}.`);
+  await carregarEventos();
+}));
 const gradeEventoGastos = grade({
   cab: "cabEventoGastos", corpo: "linhasEventoGastos", busca: "buscaEventoGastos",
   chaves: { descricao: g => g.descricao.toLowerCase(), pagador: g => g.pagador.toLowerCase() },
@@ -999,14 +1029,13 @@ function abrirEventoGasto(g = {}) {
   f.elements.pago_por.value = g.pago_por ?? ev.pessoas[0].id;
   $("dlgEventoGasto").showModal();
 }
-$("eventoAtual").addEventListener("change", renderEvento);
 $("novoEvento").addEventListener("click", () => abrirEvento());
 $("editarEvento").addEventListener("click", () => abrirEvento(eventoAtual()));
 async function excluirEvento(ev) {
   if (!confirm(`Excluir ${ev.nome} com todos os gastos?`)) return;
   await api("DELETE", `/api/eventos?id=${ev.id}`);
   status("Evento excluído.");
-  await carregarEventos();
+  await carregarEventos(null);
 }
 $("zerarEvento").addEventListener("click", tentar(async () => {
   const ev = eventoAtual();

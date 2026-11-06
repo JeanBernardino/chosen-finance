@@ -71,7 +71,8 @@ export async function migrar(db) {
       valor     numeric(12,2) not null check (valor > 0),
       pago_por  int not null,
       foreign key (pago_por, evento_id) references evento_pessoa (id, evento_id));  -- quem pagou é do mesmo evento
-    alter table evento_pessoa add column if not exists grupo text;       -- casal/família: cada um é uma parte, o acerto sai junto
+    alter table evento_pessoa add column if not exists grupo text;
+    alter table evento add column if not exists ativo boolean not null default true;  -- inativo = finalizado, sai da lista padrão       -- casal/família: cada um é uma parte, o acerto sai junto
     create table if not exists evento_acerto (                           -- acertos da divisão já pagos
       id        serial primary key,
       evento_id int not null references evento on delete cascade,
@@ -229,7 +230,7 @@ export async function adicionarRegra(db, padrao, categoria) {
 
 /** Eventos com participantes e gastos: volume pequeno, vai tudo de uma vez. */
 export const eventos = async db => (await db.query(`
-  select e.id, e.nome, e.data,
+  select e.id, e.nome, e.data, e.ativo,
          coalesce((select json_agg(json_build_object('id', p.id, 'nome', p.nome, 'grupo', p.grupo) order by p.id) from evento_pessoa p where p.evento_id = e.id), '[]') as pessoas,
          coalesce((select json_agg(json_build_object('id', a.id, 'de', a.de, 'para', a.para, 'valor', a.valor) order by a.id)
                      from evento_acerto a where a.evento_id = e.id), '[]') as pagamentos,
@@ -254,6 +255,7 @@ export const salvarEvento = (db, { id, nome, data, pessoas }) => emTransacao(db,
   return ev;
 });
 
+export const ativarEvento = async (db, id, ativo) => (await db.query("update evento set ativo = $2 where id = $1", [id, ativo])).rowCount;
 export const apagarEvento = async (db, id) => (await db.query("delete from evento where id = $1", [id])).rowCount;
 
 export async function salvarGastoEvento(db, { id, evento_id, descricao, valor, pago_por }) {

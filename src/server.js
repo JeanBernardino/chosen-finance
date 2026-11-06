@@ -116,6 +116,11 @@ const rotas = {
     if (!pessoas.length || pessoas.length > 100 || pessoas.some(p => p.nome.length > 60)) throw invalido("informe de 1 a 100 participantes, com até 60 letras cada");
     return db.salvarEvento(pool, { id: idOuNulo(e.id), nome, data: e.data, pessoas });
   },
+  "POST /api/eventos/ativo": async req => {
+    const e = JSON.parse(await corpo(req));
+    if (!await db.ativarEvento(pool, idOuNulo(e.id), e.ativo !== false)) throw Object.assign(new Error("evento não encontrado"), { status: 404 });
+    return { ok: true };
+  },
   "DELETE /api/eventos": async (req, url) => ({ apagados: await db.apagarEvento(pool, idOuNulo(url.searchParams.get("id"))) }),
   "POST /api/eventos/gastos": async req => {
     const g = JSON.parse(await corpo(req));
