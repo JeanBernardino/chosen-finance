@@ -3,7 +3,17 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
-## [0.25.0] - 2026-11-06
+## [0.26.0] - 2026-11-06
+
+### Novo
+- **Ler recibo** agora entende descontos: o desconto de cada produto (como o da embalagem na lanchonete) já sai abatido do item, e o desconto que vem só no total da nota (como o de cooperado) é dividido entre os itens.
+- Depois de ler, a tela diz se a soma dos itens bate com o total do cupom; se não bater, avisa para conferir antes de lançar.
+
+### Melhorado
+- A foto do cupom é lida pelo reconhecimento de texto do próprio Mac, bem mais preciso nos números. Continua tudo local.
+- Nota de estado cuja SEFAZ pede verificação de segurança (como SC) agora avisa para usar a foto.
+
+ - 2026-11-06
 
 ### Novo
 - **Ler recibo** nos eventos: cole o link do QR code da NFC-e ou escolha a foto do cupom, confira os itens lidos e lance todos de uma vez, cada produto como um gasto, com quem pagou o recibo.
