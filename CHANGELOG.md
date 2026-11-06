@@ -3,6 +3,11 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.23.0] - 2026-11-06
+
+### Melhorado
+- **Assistente:** as respostas ficam bem mais rápidas com o Ollama instalado direto no Mac, usando a GPU. O container Docker do Ollama saiu do projeto: instale com `brew install ollama`, inicie com `brew services start ollama` e baixe o modelo com `ollama pull gemma3:12b`.
+
 ## [0.22.0] - 2026-11-05
 
 ### Novo
