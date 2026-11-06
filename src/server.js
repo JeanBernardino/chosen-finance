@@ -115,7 +115,7 @@ const rotas = {
     }
     if (!nome || !/^\d{4}-\d{2}-\d{2}$/.test(e.data ?? "")) throw invalido("nome e data são obrigatórios");
     if (!pessoas.length || pessoas.length > 100 || pessoas.some(p => p.nome.length > 60)) throw invalido("informe de 1 a 100 participantes, com até 60 letras cada");
-    const pix_chave = texto(e.pix_chave), pix_nome = pix_chave ? texto(e.pix_nome) : null;
+    const pix_chave = texto(e.pix_chave) && pix.normalizarChave(texto(e.pix_chave)), pix_nome = pix_chave ? texto(e.pix_nome) : null;
     if (pix_chave && (pix_chave.length > 77 || !pessoas.some(p => p.nome === pix_nome))) throw invalido("com chave Pix, informe quem recebe: um dos participantes (chave até 77 letras)");
     return db.salvarEvento(pool, { id: idOuNulo(e.id), nome, data: e.data, pessoas, pix_chave, pix_nome });
   },
