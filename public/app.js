@@ -931,14 +931,9 @@ let eventos = [];
 let aberto = null; // id do evento no detalhe; null = grade com todos
 const eventoAtual = () => eventos.find(e => e.id === aberto);
 /** `id` abre o detalhe desse evento; null volta para a grade; sem argumento mantém onde está. */
-let souEu = () => false;
 async function carregarEventos(id) {
   if (id !== undefined) aberto = id;
-  let titular;
-  [eventos, { titular }] = await Promise.all([api("GET", "/api/eventos"), api("GET", "/api/pix")]);
-  // quem é você na divisão: "Eu" (padrão do evento novo), o titular do Pix ou o primeiro nome dele
-  const sem = n => n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-  souEu = !titular ? () => false : n => ["eu", sem(titular), sem(titular).split(/\s+/)[0]].includes(sem(n));
+  eventos = await api("GET", "/api/eventos");
   renderEvento();
 }
 function renderEvento() {
@@ -951,7 +946,8 @@ function renderEvento() {
   $("nomeEvento").textContent = `${ev.nome} · ${dataBr(ev.data)}${ev.ativo ? "" : " (inativo)"}`;
   const d = dividir(ev.pessoas, ev.gastos, ev.pagamentos), nome = id => ev.pessoas.find(p => p.id === id)?.nome ?? "";
   const grupo = id => { const p = ev.pessoas.find(p => p.id === id); return p?.grupo ?? p?.nome ?? ""; };
-  const paraMim = id => ev.pessoas.some(p => (p.grupo ?? p.nome) === grupo(id) && souEu(p.nome));
+  // QR só nos acertos para quem recebe o Pix do evento (ou o casal dele)
+  const paraMim = id => !!ev.pix_chave && ev.pessoas.some(p => (p.grupo ?? p.nome) === grupo(id) && p.nome === ev.pix_nome);
   $("kpisEvento").innerHTML = `
     <div class="kpi destaque"><span>Gasto total</span><strong>${brl(d.total)}</strong><small>${ev.gastos.length} gastos</small></div>
     <div class="kpi"><span>Por pessoa</span><strong>${brl(d.parte)}</strong><small>${ev.pessoas.length} participantes</small></div>`;
@@ -1024,6 +1020,8 @@ function abrirEvento(ev = { data: hoje(), pessoas: [{ nome: "Eu" }] }) {
   f.elements.data.value = ev.data;
   // casal volta para a mesma linha, como foi digitado
   f.elements.pessoas.value = [...new Set(ev.pessoas.map(p => p.grupo ?? p.nome))].join("\n");
+  f.elements.pix_chave.value = ev.pix_chave ?? "";
+  f.elements.pix_nome.value = ev.pix_nome ?? "";
   $("dlgEvento").showModal();
 }
 function abrirEventoGasto(g = {}) {
@@ -1054,7 +1052,7 @@ $("zerarEvento").addEventListener("click", tentar(async () => {
 $("excluirEvento").addEventListener("click", tentar(() => excluirEvento(eventoAtual())));
 $("novoEventoGasto").addEventListener("click", () => abrirEventoGasto());
 async function cobrarPix(nome, valor) {
-  const c = await api("GET", `/api/pix/cobranca?valor=${valor}`);
+  const c = await api("GET", `/api/eventos/pix?evento_id=${eventoAtual().id}&valor=${valor}`);
   $("tPix").textContent = `${nome} paga ${moeda(valor)}`;
   $("pixQr").innerHTML = c.svg;  // SVG gerado no nosso servidor a partir do BR Code
   $("pixCopiaCola").value = c.copiaCola;
@@ -1147,8 +1145,8 @@ $("dlgEvento").addEventListener("close", tentar(async () => {
   const r = $("dlgEvento").returnValue, f = $("formEvento");
   if (r === "apagar") return excluirEvento(eventoAtual());
   if (r !== "ok") return;
-  const { nome, data, pessoas } = Object.fromEntries(new FormData(f));
-  const ev = await json("POST", "/api/eventos", { id: f.dataset.id || null, nome, data, pessoas: pessoas.split("\n") });
+  const { nome, data, pessoas, pix_chave, pix_nome } = Object.fromEntries(new FormData(f));
+  const ev = await json("POST", "/api/eventos", { id: f.dataset.id || null, nome, data, pessoas: pessoas.split("\n"), pix_chave, pix_nome });
   status("Evento salvo.");
   await carregarEventos(ev.id);
 }));
