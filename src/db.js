@@ -53,7 +53,24 @@ export async function migrar(db) {
       valor         numeric(12,2) not null check (valor > 0),          -- por parcela
       parcela_total int not null check (parcela_total between 1 and 600),
       primeira      date not null);                                   -- mês da 1ª parcela (dia 1)
-    alter table financiamento add column if not exists abatidas int not null default 0;  -- quitadas de trás para frente`);
+    alter table financiamento add column if not exists abatidas int not null default 0;  -- quitadas de trás para frente
+    create table if not exists evento (                                  -- churrasco, viagem: gastos rachados entre os participantes
+      id   serial primary key,
+      nome text not null,
+      data date not null);
+    create table if not exists evento_pessoa (
+      id        serial primary key,
+      evento_id int not null references evento on delete cascade,
+      nome      text not null,
+      unique (evento_id, nome),
+      unique (id, evento_id));
+    create table if not exists evento_gasto (
+      id        serial primary key,
+      evento_id int not null references evento on delete cascade,
+      descricao text not null,
+      valor     numeric(12,2) not null check (valor > 0),
+      pago_por  int not null,
+      foreign key (pago_por, evento_id) references evento_pessoa (id, evento_id));  -- quem pagou é do mesmo evento`);
   if (nova) await salvarRegras(db, REGRAS_PADRAO);
   // cartões que já vinham das importações antes do cadastro existir
   await db.query(`
@@ -172,13 +189,20 @@ export async function moverRegra(db, id, passo) {
 /** Substitui todas as regras; `lista` em ordem de prioridade. */
 export async function salvarRegras(db, lista) {
   for (const [p] of lista) new RegExp(p);
-  const c = await db.connect();
-  try {
-    await c.query("begin");
+  await emTransacao(db, async c => {
     await c.query("delete from regra");
     await c.query("insert into regra (prioridade, padrao, categoria) select * from unnest($1::int[], $2::text[], $3::text[])",
       [lista.map((_, i) => i), lista.map(r => r[0]), lista.map(r => r[1])]);
+  });
+}
+
+async function emTransacao(db, fn) {
+  const c = await db.connect();
+  try {
+    await c.query("begin");
+    const r = await fn(c);
     await c.query("commit");
+    return r;
   } catch (e) {
     await c.query("rollback");
     throw e;
@@ -193,3 +217,37 @@ export async function adicionarRegra(db, padrao, categoria) {
   await db.query("insert into regra (prioridade, padrao, categoria) select coalesce(min(prioridade), 0) - 1, $1, $2 from regra",
     [padrao, categoria]);
 }
+
+/** Eventos com participantes e gastos: volume pequeno, vai tudo de uma vez. */
+export const eventos = async db => (await db.query(`
+  select e.id, e.nome, e.data,
+         coalesce((select json_agg(json_build_object('id', p.id, 'nome', p.nome) order by p.id) from evento_pessoa p where p.evento_id = e.id), '[]') as pessoas,
+         coalesce((select json_agg(json_build_object('id', g.id, 'descricao', g.descricao, 'valor', g.valor, 'pago_por', g.pago_por) order by g.id)
+                     from evento_gasto g where g.evento_id = e.id), '[]') as gastos
+    from evento e order by e.data desc, e.id desc`)).rows;
+
+/** Participantes pelo nome: mantém os que continuam, cria os novos e tira os que saíram (se não pagaram nada). */
+export const salvarEvento = (db, { id, nome, data, pessoas }) => emTransacao(db, async c => {
+  const ev = (await (id
+    ? c.query("update evento set nome = $1, data = $2 where id = $3 returning id", [nome, data, id])
+    : c.query("insert into evento (nome, data) values ($1, $2) returning id", [nome, data]))).rows[0];
+  if (!ev) throw Object.assign(new Error("evento não encontrado"), { status: 404 });
+  try {
+    await c.query("delete from evento_pessoa where evento_id = $1 and nome <> all($2::text[])", [ev.id, pessoas]);
+  } catch (e) {
+    throw e.code === "23503" ? Object.assign(new Error("quem já pagou algum gasto não pode sair do evento: troque o pagador ou exclua o gasto antes"), { status: 400 }) : e;
+  }
+  await c.query("insert into evento_pessoa (evento_id, nome) select $1, unnest($2::text[]) on conflict do nothing", [ev.id, pessoas]);
+  return ev;
+});
+
+export const apagarEvento = async (db, id) => (await db.query("delete from evento where id = $1", [id])).rowCount;
+
+export async function salvarGastoEvento(db, { id, evento_id, descricao, valor, pago_por }) {
+  const v = [evento_id, descricao, valor, pago_por];
+  return (await (id
+    ? db.query("update evento_gasto set evento_id = $1, descricao = $2, valor = $3, pago_por = $4 where id = $5 returning *", [...v, id])
+    : db.query("insert into evento_gasto (evento_id, descricao, valor, pago_por) values ($1, $2, $3, $4) returning *", v))).rows[0];
+}
+
+export const apagarGastoEvento = async (db, id) => (await db.query("delete from evento_gasto where id = $1", [id])).rowCount;

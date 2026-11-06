@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { orcamento, parcelasAbertas, parcelasDoMes, parcelasFinanciadas, parcelasPagas, parcelasPorMes, somaPorMes, porEstabelecimento, recorrentes } from "../public/analises.js";
+import { dividir, orcamento, parcelasAbertas, parcelasDoMes, parcelasFinanciadas, parcelasPagas, parcelasPorMes, somaPorMes, porEstabelecimento, recorrentes } from "../public/analises.js";
 
 const t = (mes, descricao, valor, categoria = "Compras online", extra = {}) =>
   ({ mes, data: `${mes}-10`, descricao, valor, categoria, origem: "Nubank", ...extra });
@@ -98,4 +98,16 @@ test("parcelasPagas: as das faturas e as dos financiamentos já vencidos; somada
   const futuro = parcelasPorMes([...parcelasAbertas([p("2026-09", 1), p("2026-10", 2)]), ...parcelasFinanciadas([carro], "2026-10")]);
   assert.deepEqual([...somaPorMes(pagas)], [["2026-09", 1100], ["2026-10", 1100]]);
   assert.deepEqual(futuro, [["2026-11", 1100], ["2026-12", 1000]]);
+});
+
+test("dividir racha em partes iguais e acerta quem pagou com quem deve", () => {
+  const pessoas = [{ id: 1, nome: "Eu" }, { id: 2, nome: "Ana" }, { id: 3, nome: "Beto" }];
+  const r = dividir(pessoas, [{ valor: 70, pago_por: 1 }, { valor: 30, pago_por: 2 }]);
+  assert.equal(r.total, 100);
+  // 100 / 3: o centavo que sobra vai para o primeiro, e os saldos fecham em zero
+  assert.deepEqual(r.saldos.map(s => s.parte), [33.34, 33.33, 33.33]);
+  assert.equal(Math.round(r.saldos.reduce((s, x) => s + x.saldo, 0) * 100), 0);
+  assert.deepEqual(r.acertos, [{ de: "Beto", para: "Eu", valor: 33.33 }, { de: "Ana", para: "Eu", valor: 3.33 }]);
+  assert.deepEqual(dividir([], []), { total: 0, parte: 0, acertos: [], saldos: [] });
+  assert.deepEqual(dividir(pessoas, [{ valor: 30, pago_por: 1 }, { valor: 30, pago_por: 2 }, { valor: 30, pago_por: 3 }]).acertos, []);
 });

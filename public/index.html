@@ -15,6 +15,7 @@
     <a href="#comparar"><svg viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3"/></svg>Comparar</a>
     <a href="#compromissos"><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4zM4 10h16M8 3v5m8-5v5"/></svg>Compromissos</a>
     <a href="#gastos"><svg viewBox="0 0 24 24"><path d="M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2zM9 9h6M9 13h6"/></svg>Gastos manuais</a>
+    <a href="#eventos"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6m0-5.5c.6-.3 1.3-.5 2-.5 2.2 0 4 1.8 4 4"/></svg>Eventos</a>
     <a href="#importar"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>Importar faturas</a>
     <a href="#cartoes"><svg viewBox="0 0 24 24"><path d="M3 6h18v12H3zM3 10h18M7 15h3"/></svg>Cartões</a>
     <a href="#config"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 2.9-1.2V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.1a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Configurações</a>
@@ -208,6 +209,51 @@
     </article>
   </section>
 
+  <section data-view="eventos" hidden>
+    <header class="cabecalho">
+      <div><h1>Eventos</h1><p class="sub">Churrasco, hamburgada, viagem: anote os gastos e quem pagou, e no fim veja quanto cada um acerta. Separado das faturas.</p></div>
+      <div class="filtros">
+        <select id="eventoAtual" aria-label="Evento"></select>
+        <button class="btn" id="editarEvento">Editar evento</button>
+        <button class="btn primary" id="novoEvento">+ Novo evento</button>
+      </div>
+    </header>
+    <div id="semEvento" class="vazio card" hidden><h2>Nenhum evento ainda</h2><p>Crie um com os participantes e vá lançando os gastos.</p></div>
+    <div id="detalheEvento" hidden>
+      <div class="kpis" id="kpisEvento"></div>
+      <article class="card">
+        <div class="card-topo">
+          <div><h2>Gastos</h2></div>
+          <div class="filtros-grid">
+            <input type="search" id="buscaEventoGastos" placeholder="Buscar gasto ou quem pagou" aria-label="Buscar gasto ou quem pagou">
+            <button class="btn primary" id="novoEventoGasto">+ Gasto</button>
+          </div>
+        </div>
+        <div class="tabela-wrap">
+          <table>
+            <thead id="cabEventoGastos"><tr><th><button class="ordenar" data-ordem="descricao">Descrição</button></th><th><button class="ordenar" data-ordem="pagador">Pago por</button></th><th class="num"><button class="ordenar" data-ordem="valor">Valor</button></th><th></th></tr></thead>
+            <tbody id="linhasEventoGastos"></tbody>
+          </table>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-topo">
+          <div><h2>Divisão</h2><p class="sub" id="acertos"></p></div>
+          <div class="filtros-grid">
+            <input type="search" id="buscaEventoPessoas" placeholder="Buscar participante" aria-label="Buscar participante">
+            <button class="btn" id="copiarDivisao" title="Copia o resumo para colar no grupo">Copiar resumo</button>
+          </div>
+        </div>
+        <div class="tabela-wrap">
+          <table>
+            <thead id="cabEventoPessoas"><tr><th><button class="ordenar" data-ordem="nome">Participante</button></th><th class="num"><button class="ordenar" data-ordem="pagou">Pagou</button></th><th class="num"><button class="ordenar" data-ordem="parte">Parte</button></th><th class="num"><button class="ordenar" data-ordem="saldo">Saldo</button></th></tr></thead>
+            <tbody id="linhasEventoPessoas"></tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+  </section>
+
   <section data-view="importar" hidden>
     <header class="cabecalho">
       <div><h1>Importar faturas</h1><p class="sub">OFX do Nubank (cartão ou conta), OFX do extrato Itaú ou PDF da fatura do cartão Itaú. Reimportar não duplica.</p></div>
@@ -397,6 +443,31 @@
     </div>
     <small id="previaFinanciamento"></small>
     <div class="botoes"><button class="btn perigo" value="apagar" formnovalidate id="apagarFinanciamento">Excluir</button><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgEvento">
+  <form method="dialog" id="formEvento">
+    <h2 id="tEvento">Novo evento</h2>
+    <div class="duas">
+      <label>Nome<input name="nome" required maxlength="100" placeholder="Ex.: Hamburgada de sábado"></label>
+      <label>Data<input type="date" name="data" required></label>
+    </div>
+    <label>Participantes, um por linha<textarea name="pessoas" rows="6" required placeholder="Eu&#10;Ana&#10;Beto"></textarea></label>
+    <small>A divisão é em partes iguais entre todos os participantes.</small>
+    <div class="botoes"><button class="btn perigo" value="apagar" formnovalidate id="apagarEvento">Excluir</button><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgEventoGasto">
+  <form method="dialog" id="formEventoGasto">
+    <h2 id="tEventoGasto">Novo gasto</h2>
+    <label>Descrição<input name="descricao" required maxlength="200" placeholder="Ex.: Carne, pão, carvão"></label>
+    <div class="duas">
+      <label>Valor (R$)<input type="number" name="valor" min="0.01" step="0.01" inputmode="decimal" required></label>
+      <label>Pago por<select name="pago_por" id="eventoPagador" required></select></label>
+    </div>
+    <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
   </form>
 </dialog>
 
