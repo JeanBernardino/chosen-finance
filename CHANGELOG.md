@@ -8,6 +8,14 @@ Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### C
 
 
 
+## [0.33.0] - 2026-11-06
+
+### Novo
+- **Comparar** ganhou o seletor **Fatura | Gasto manual**: escolha se os meses e as categorias vêm das faturas importadas ou dos gastos que você anotou. As duas fontes nunca se misturam, e Fatura continua sendo o padrão.
+
+### Melhorado
+- **Gastos manuais** agora são sempre gastos em dinheiro, sem ligação com cartões: saíram o campo "Pago com", o filtro de cartão e os resumos dinheiro × cartão.
+
 ## [0.32.2] - 2026-11-06
 
 ### Corrigido
