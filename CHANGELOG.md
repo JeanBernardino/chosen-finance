@@ -3,6 +3,11 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.24.1] - 2026-11-06
+
+### Corrigido
+- Quando o servidor está desatualizado em relação à tela, o erro agora diz o que aconteceu em vez de "is not valid JSON". Se aparecer, reinicie o servidor.
+
 ## [0.24.0] - 2026-11-06
 
 ### Novo
