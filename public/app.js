@@ -1053,9 +1053,12 @@ $("lerRecibo").addEventListener("click", async () => {
   $("lerRecibo").disabled = true;
   $("reciboStatus").textContent = link ? "Buscando a nota na SEFAZ…" : "Lendo a foto no Ollama (pode levar um minuto)…";
   try {
-    const { itens } = link ? await api("POST", `/api/eventos/recibo?url=${encodeURIComponent(link)}`) : await api("POST", "/api/eventos/recibo", foto);
+    const { itens, total, confere } = link ? await api("POST", `/api/eventos/recibo?url=${encodeURIComponent(link)}`) : await api("POST", "/api/eventos/recibo", foto);
     $("itensRecibo").insertAdjacentHTML("beforeend", itens.map(linhaRecibo).join(""));
-    $("reciboStatus").textContent = `${itens.length} itens lidos.${link ? "" : " A foto pode ter erro de leitura: confira descrição e valor."}`;
+    const soma = itens.reduce((s, i) => s + i.valor, 0);
+    // a conferência com o total impresso é o que diz se a leitura (e os descontos) fecharam
+    $("reciboStatus").textContent = `${itens.length} itens lidos, já com os descontos. ` + (confere ? `Somam ${brl(soma)}, igual ao total do cupom.`
+      : total ? `Somam ${brl(soma)}, mas o cupom diz ${brl(total)}: confira os valores antes de lançar.` : "Não achei o total do cupom para conferir: revise os valores.");
   } catch (err) {
     $("reciboStatus").textContent = err.message;
   } finally {

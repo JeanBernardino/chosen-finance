@@ -127,10 +127,10 @@ const rotas = {
   // só lê: os itens voltam para a tela revisar antes de lançar. Com ?url é o link da NFC-e; sem, o corpo é a foto
   "POST /api/eventos/recibo": async (req, url) => {
     const link = url.searchParams.get("url");
-    if (link) return { itens: await lerNfce(link) };
+    if (link) return lerNfce(link);
     const foto = await corpo(req);
     if (!foto.length) throw invalido("envie a foto do cupom ou o link da nota");
-    return { itens: await lerFoto(foto) };
+    return lerFoto(foto);
   },
   "POST /api/eventos/gastos/lote": async req => {
     const g = JSON.parse(await corpo(req));
