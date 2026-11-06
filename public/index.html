@@ -475,7 +475,7 @@
     <small>A divisão é em partes iguais entre todos os participantes. Casal ou família na mesma linha, com "+": cada um conta uma parte, mas a cobrança sai junta, para o grupo.</small>
     <div class="duas">
       <label>Chave Pix (opcional)<input name="pix_chave" maxlength="77" placeholder="CPF, e-mail, celular ou aleatória"></label>
-      <label>Quem recebe o Pix<input name="pix_nome" maxlength="60" placeholder="Ex.: Eu"></label>
+      <label>Quem recebe o Pix<select name="pix_nome" id="eventoRecebedor"></select></label>
     </div>
     <small>Com a chave, quem deve para esse participante ganha o botão Pix na divisão, com o QR Code no valor certo.</small>
     <div class="botoes"><button class="btn perigo" value="apagar" formnovalidate id="apagarEvento">Excluir</button><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>

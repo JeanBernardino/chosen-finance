@@ -1011,6 +1011,13 @@ const gradeEventoPessoas = grade({
     </tr>`,
 });
 
+// quem recebe o Pix sai da lista de participantes, como o servidor separa: linha por linha, "+" separa o casal
+function recebedores(atual = $("eventoRecebedor").value) {
+  const nomes = [...new Set($("formEvento").elements.pessoas.value.split("\n").flatMap(l => l.split("+")).map(n => n.trim()).filter(Boolean))];
+  $("eventoRecebedor").innerHTML = nomes.map(n => `<option>${esc(n)}</option>`).join("");
+  if (nomes.includes(atual)) $("eventoRecebedor").value = atual;
+}
+$("formEvento").elements.pessoas.addEventListener("input", () => recebedores());
 function abrirEvento(ev = { data: hoje(), pessoas: [{ nome: "Eu" }] }) {
   const f = $("formEvento");
   f.dataset.id = ev.id ?? "";
@@ -1021,7 +1028,7 @@ function abrirEvento(ev = { data: hoje(), pessoas: [{ nome: "Eu" }] }) {
   // casal volta para a mesma linha, como foi digitado
   f.elements.pessoas.value = [...new Set(ev.pessoas.map(p => p.grupo ?? p.nome))].join("\n");
   f.elements.pix_chave.value = ev.pix_chave ?? "";
-  f.elements.pix_nome.value = ev.pix_nome ?? "";
+  recebedores(ev.pix_nome);
   $("dlgEvento").showModal();
 }
 function abrirEventoGasto(g = {}) {
