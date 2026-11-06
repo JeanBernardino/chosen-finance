@@ -15,17 +15,14 @@ export function crc16(s) {
   return crc.toString(16).toUpperCase().padStart(4, "0");
 }
 
-export function copiaCola({ chave, nome, cidade, valor }) {
+export function copiaCola({ chave, nome, cidade = "BRASIL", valor }) {
   const corpo = campo("00", "01") + campo("26", campo("00", "br.gov.bcb.pix") + campo("01", chave.trim()))
     + campo("52", "0000") + campo("53", "986") + campo("54", valor.toFixed(2)) + campo("58", "BR")
     + campo("59", ascii(nome, 25)) + campo("60", ascii(cidade, 15)) + campo("62", campo("05", "***")) + "6304";
   return corpo + crc16(corpo);
 }
 
-/** Configurado por ambiente: PIX_CHAVE e PIX_NOME (titular) ligam; PIX_CIDADE é opcional. */
-export const config = (env = process.env) => env.PIX_CHAVE && env.PIX_NOME
-  ? { chave: env.PIX_CHAVE, nome: env.PIX_NOME, cidade: env.PIX_CIDADE || "BRASIL" } : null;
-
+/** { chave, nome } vêm do evento: o nome no BR Code é só exibição, o banco mostra o titular da chave. */
 export async function cobranca(cfg, valor) {
   const texto = copiaCola({ ...cfg, valor });
   return { copiaCola: texto, svg: await QRCode.toString(texto, { type: "svg", margin: 1, errorCorrectionLevel: "M" }) };

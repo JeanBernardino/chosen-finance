@@ -115,7 +115,9 @@ const rotas = {
     }
     if (!nome || !/^\d{4}-\d{2}-\d{2}$/.test(e.data ?? "")) throw invalido("nome e data são obrigatórios");
     if (!pessoas.length || pessoas.length > 100 || pessoas.some(p => p.nome.length > 60)) throw invalido("informe de 1 a 100 participantes, com até 60 letras cada");
-    return db.salvarEvento(pool, { id: idOuNulo(e.id), nome, data: e.data, pessoas });
+    const pix_chave = texto(e.pix_chave), pix_nome = pix_chave ? texto(e.pix_nome) : null;
+    if (pix_chave && (pix_chave.length > 77 || !pessoas.some(p => p.nome === pix_nome))) throw invalido("com chave Pix, informe quem recebe: um dos participantes (chave até 77 letras)");
+    return db.salvarEvento(pool, { id: idOuNulo(e.id), nome, data: e.data, pessoas, pix_chave, pix_nome });
   },
   "POST /api/eventos/ativo": async req => {
     const e = JSON.parse(await corpo(req));
@@ -155,13 +157,11 @@ const rotas = {
   },
   "DELETE /api/eventos/acertos": async (req, url) => ({ apagados: await db.apagarAcerto(pool, idOuNulo(url.searchParams.get("id"))) }),
   "DELETE /api/eventos/lancamentos": async (req, url) => ({ apagados: await db.zerarEvento(pool, idOuNulo(url.searchParams.get("evento_id"))) }),
-  // titular do Pix: a tela só oferece o QR nos acertos que vêm para quem tem esse nome
-  "GET /api/pix": () => ({ titular: pix.config()?.nome ?? null }),
-  "GET /api/pix/cobranca": async (req, url) => {
-    const cfg = pix.config(), valor = Number(url.searchParams.get("valor"));
-    if (!cfg) throw invalido("configure PIX_CHAVE e PIX_NOME para gerar o Pix");
+  "GET /api/eventos/pix": async (req, url) => {
+    const ev = (await db.eventos(pool)).find(e => e.id === idOuNulo(url.searchParams.get("evento_id"))), valor = Number(url.searchParams.get("valor"));
+    if (!ev?.pix_chave) throw invalido("cadastre a chave Pix no evento");
     if (!(valor > 0 && valor < 1e9)) throw invalido("valor inválido");
-    return pix.cobranca(cfg, valor);
+    return pix.cobranca({ chave: ev.pix_chave, nome: ev.pix_nome }, valor);
   },
   "DELETE /api/eventos/gastos": async (req, url) => ({ apagados: await db.apagarGastoEvento(pool, idOuNulo(url.searchParams.get("id"))) }),
   "GET /api/regras": () => db.listaRegras(pool),

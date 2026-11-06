@@ -72,7 +72,9 @@ export async function migrar(db) {
       pago_por  int not null,
       foreign key (pago_por, evento_id) references evento_pessoa (id, evento_id));  -- quem pagou é do mesmo evento
     alter table evento_pessoa add column if not exists grupo text;
-    alter table evento add column if not exists ativo boolean not null default true;  -- inativo = finalizado, sai da lista padrão       -- casal/família: cada um é uma parte, o acerto sai junto
+    alter table evento add column if not exists ativo boolean not null default true;
+    alter table evento add column if not exists pix_chave text;  -- cobrança por Pix: a chave de quem recebe
+    alter table evento add column if not exists pix_nome text;   -- participante que recebe o Pix  -- inativo = finalizado, sai da lista padrão       -- casal/família: cada um é uma parte, o acerto sai junto
     create table if not exists evento_acerto (                           -- acertos da divisão já pagos
       id        serial primary key,
       evento_id int not null references evento on delete cascade,
@@ -230,7 +232,7 @@ export async function adicionarRegra(db, padrao, categoria) {
 
 /** Eventos com participantes e gastos: volume pequeno, vai tudo de uma vez. */
 export const eventos = async db => (await db.query(`
-  select e.id, e.nome, e.data, e.ativo,
+  select e.id, e.nome, e.data, e.ativo, e.pix_chave, e.pix_nome,
          coalesce((select json_agg(json_build_object('id', p.id, 'nome', p.nome, 'grupo', p.grupo) order by p.id) from evento_pessoa p where p.evento_id = e.id), '[]') as pessoas,
          coalesce((select json_agg(json_build_object('id', a.id, 'de', a.de, 'para', a.para, 'valor', a.valor) order by a.id)
                      from evento_acerto a where a.evento_id = e.id), '[]') as pagamentos,
@@ -239,11 +241,11 @@ export const eventos = async db => (await db.query(`
     from evento e order by e.data desc, e.id desc`)).rows;
 
 /** Participantes pelo nome ({ nome, grupo }): mantém os que continuam, cria os novos e tira os que saíram (se não pagaram nada). */
-export const salvarEvento = (db, { id, nome, data, pessoas }) => emTransacao(db, async c => {
-  const nomes = pessoas.map(p => p.nome);
+export const salvarEvento = (db, { id, nome, data, pessoas, pix_chave, pix_nome }) => emTransacao(db, async c => {
+  const nomes = pessoas.map(p => p.nome), v = [nome, data, pix_chave, pix_nome];
   const ev = (await (id
-    ? c.query("update evento set nome = $1, data = $2 where id = $3 returning id", [nome, data, id])
-    : c.query("insert into evento (nome, data) values ($1, $2) returning id", [nome, data]))).rows[0];
+    ? c.query("update evento set nome = $1, data = $2, pix_chave = $3, pix_nome = $4 where id = $5 returning id", [...v, id])
+    : c.query("insert into evento (nome, data, pix_chave, pix_nome) values ($1, $2, $3, $4) returning id", v))).rows[0];
   if (!ev) throw Object.assign(new Error("evento não encontrado"), { status: 404 });
   try {
     await c.query("delete from evento_pessoa where evento_id = $1 and nome <> all($2::text[])", [ev.id, nomes]);
