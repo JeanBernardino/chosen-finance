@@ -249,7 +249,7 @@
         </div>
         <div class="tabela-wrap">
           <table>
-            <thead id="cabEventoGastos"><tr><th><button class="ordenar" data-ordem="descricao">Descrição</button></th><th><button class="ordenar" data-ordem="pagador">Pago por</button></th><th class="num"><button class="ordenar" data-ordem="valor">Valor</button></th><th></th></tr></thead>
+            <thead id="cabEventoGastos"><tr><th><button class="ordenar" data-ordem="descricao">Descrição</button></th><th><button class="ordenar" data-ordem="pagador">Pago por</button></th><th class="num"><button class="ordenar" data-ordem="quantidade">Quantidade</button></th><th class="num"><button class="ordenar" data-ordem="unitario">Valor unitário</button></th><th class="num"><button class="ordenar" data-ordem="valor">Valor total</button></th><th></th></tr></thead>
             <tbody id="linhasEventoGastos"></tbody>
           </table>
         </div>
@@ -483,10 +483,12 @@
   <form method="dialog" id="formEventoGasto">
     <h2 id="tEventoGasto">Novo gasto</h2>
     <label>Descrição<input name="descricao" required maxlength="200" placeholder="Ex.: Carne, pão, carvão"></label>
+    <label>Pago por<select name="pago_por" id="eventoPagador" required></select></label>
     <div class="duas">
-      <label>Valor (R$)<input type="number" name="valor" min="0.01" step="0.01" inputmode="decimal" required></label>
-      <label>Pago por<select name="pago_por" id="eventoPagador" required></select></label>
+      <label>Quantidade<input type="number" name="quantidade" min="0.001" step="0.001" inputmode="decimal" required></label>
+      <label>Valor unitário (R$)<input type="number" name="unitario" min="0.01" step="any" inputmode="decimal" required></label>
     </div>
+    <small>Item que já está no evento com o mesmo pagador soma na quantidade em vez de repetir.</small>
     <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
   </form>
 </dialog>

@@ -74,6 +74,17 @@ export async function migrar(db) {
     alter table evento_pessoa add column if not exists grupo text;
     alter table evento add column if not exists ativo boolean not null default true;
     alter table evento add column if not exists pix_chave text;  -- cobrança por Pix: a chave de quem recebe
+    alter table evento_gasto add column if not exists quantidade numeric(10,3) not null default 1 check (quantidade > 0);  -- valor é o total da linha
+    -- o mesmo item (descrição sem caixa, mesmo pagador) é uma linha só: os repetidos de antes viram quantidade
+    do $$ begin
+      if to_regclass('evento_gasto_item') is null then
+        with g as (select id, sum(quantidade) over w q, sum(valor) over w v, min(id) over w fica
+                     from evento_gasto window w as (partition by evento_id, lower(descricao), pago_por)),
+             d as (delete from evento_gasto e using g where e.id = g.id and g.id <> g.fica)
+        update evento_gasto e set quantidade = g.q, valor = g.v from g where e.id = g.id and g.id = g.fica and g.q <> e.quantidade;
+        create unique index evento_gasto_item on evento_gasto (evento_id, lower(descricao), pago_por);
+      end if;
+    end $$;
     alter table evento add column if not exists pix_nome text;   -- participante que recebe o Pix  -- inativo = finalizado, sai da lista padrão       -- casal/família: cada um é uma parte, o acerto sai junto
     create table if not exists evento_acerto (                           -- acertos da divisão já pagos
       id        serial primary key,
@@ -235,7 +246,7 @@ export const eventos = async db => (await db.query(`
          coalesce((select json_agg(json_build_object('id', p.id, 'nome', p.nome, 'grupo', p.grupo) order by p.id) from evento_pessoa p where p.evento_id = e.id), '[]') as pessoas,
          coalesce((select json_agg(json_build_object('id', a.id, 'de', a.de, 'para', a.para, 'valor', a.valor) order by a.id)
                      from evento_acerto a where a.evento_id = e.id), '[]') as pagamentos,
-         coalesce((select json_agg(json_build_object('id', g.id, 'descricao', g.descricao, 'valor', g.valor, 'pago_por', g.pago_por) order by g.id)
+         coalesce((select json_agg(json_build_object('id', g.id, 'descricao', g.descricao, 'quantidade', g.quantidade, 'valor', g.valor, 'pago_por', g.pago_por) order by g.id)
                      from evento_gasto g where g.evento_id = e.id), '[]') as gastos
     from evento e order by e.data desc, e.id desc`)).rows;
 
@@ -259,17 +270,23 @@ export const salvarEvento = (db, { id, nome, data, pessoas, pix_chave, pix_nome 
 export const ativarEvento = async (db, id, ativo) => (await db.query("update evento set ativo = $2 where id = $1", [id, ativo])).rowCount;
 export const apagarEvento = async (db, id) => (await db.query("delete from evento where id = $1", [id])).rowCount;
 
-export async function salvarGastoEvento(db, { id, evento_id, descricao, valor, pago_por }) {
-  const v = [evento_id, descricao, valor, pago_por];
-  return (await (id
-    ? db.query("update evento_gasto set evento_id = $1, descricao = $2, valor = $3, pago_por = $4 where id = $5 returning *", [...v, id])
-    : db.query("insert into evento_gasto (evento_id, descricao, valor, pago_por) values ($1, $2, $3, $4) returning *", v))).rows[0];
-}
+// item que já existe no evento (mesma descrição sem caixa e mesmo pagador) soma quantidade e valor em vez de repetir a linha
+const SOMAR_ITEM = `on conflict (evento_id, lower(descricao), pago_por)
+  do update set quantidade = evento_gasto.quantidade + excluded.quantidade, valor = evento_gasto.valor + excluded.valor`;
 
-/** Itens de um recibo, todos pagos pela mesma pessoa: um insert só, entra tudo ou nada. */
+/** Editar troca a linha pelos valores novos; se a descrição nova já existe, junta nela. */
+export const salvarGastoEvento = (db, { id, evento_id, descricao, quantidade, valor, pago_por }) => emTransacao(db, async c => {
+  if (id && !(await c.query("delete from evento_gasto where id = $1 and evento_id = $2", [id, evento_id])).rowCount)
+    throw Object.assign(new Error("gasto não encontrado"), { status: 404 });
+  return (await c.query(`insert into evento_gasto (evento_id, descricao, quantidade, valor, pago_por) values ($1, $2, $3, $4, $5) ${SOMAR_ITEM} returning *`,
+    [evento_id, descricao, quantidade, valor, pago_por])).rows[0];
+});
+
+/** Itens de um recibo, todos pagos pela mesma pessoa: um insert só, entra tudo ou nada; repetidos no cupom já entram juntos. */
 export const salvarGastosEvento = async (db, { evento_id, pago_por, itens }) => (await db.query(`
-  insert into evento_gasto (evento_id, descricao, valor, pago_por)
-  select $1, d, v, $4 from unnest($2::text[], $3::numeric[]) as t(d, v)`,
+  insert into evento_gasto (evento_id, descricao, quantidade, valor, pago_por)
+  select $1, (array_agg(d order by o))[1], count(*), sum(v), $4 from unnest($2::text[], $3::numeric[]) with ordinality as t(d, v, o) group by lower(d)
+  ${SOMAR_ITEM}`,
   [evento_id, itens.map(i => i.descricao), itens.map(i => i.valor), pago_por])).rowCount;
 export const salvarAcerto = async (db, { evento_id, de, para, valor }) => (await db.query(
   "insert into evento_acerto (evento_id, de, para, valor) values ($1, $2, $3, $4) returning *", [evento_id, de, para, valor])).rows[0];

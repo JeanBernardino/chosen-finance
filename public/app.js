@@ -955,7 +955,7 @@ function renderEvento() {
     <div class="kpi destaque"><span>Gasto total</span><strong>${brl(d.total)}</strong><small>${ev.gastos.length} gastos</small></div>
     <div class="kpi"><span>Por pessoa</span><strong>${brl(d.parte)}</strong><small>${ev.pessoas.length} participantes</small></div>`;
   $("acertos").textContent = !d.total ? "Lance os gastos para ver a divisão." : d.acertos.length ? "Clique no saldo de quem pagou para marcar." : "Ninguém deve nada: já está acertado.";
-  gradeEventoGastos(ev.gastos.map(g => ({ ...g, pagador: nome(g.pago_por) })));
+  gradeEventoGastos(ev.gastos.map(g => ({ ...g, pagador: nome(g.pago_por), unitario: g.valor / g.quantidade })));
   // devedor: o acerto pendente e o já pago ficam na própria linha, um botão só alterna entre os dois
   gradeEventoPessoas(d.saldos.map(u => ({ ...u,
     deve: d.acertos.filter(a => a.de_id === u.id).map(a => `${brl(a.valor)} para ${esc(a.para)}`).join(", "),
@@ -995,6 +995,8 @@ const gradeEventoGastos = grade({
     <tr>
       <td>${esc(g.descricao)}</td>
       <td>${esc(g.pagador)}</td>
+      <td class="num mono">${g.quantidade.toLocaleString("pt-BR")}</td>
+      <td class="num mono">${brl(g.unitario)}</td>
       <td class="num mono">${brl(g.valor)}</td>
       <td class="acoes"><button class="icone" data-editar="${g.id}">editar</button><button class="icone perigo" data-apagar="${g.id}">excluir</button></td>
     </tr>`,
@@ -1040,7 +1042,9 @@ function abrirEventoGasto(g = {}) {
   $("tEventoGasto").textContent = g.id ? "Editar gasto" : "Novo gasto";
   $("eventoPagador").innerHTML = ev.pessoas.map(p => `<option value="${p.id}">${esc(p.nome)}</option>`).join("");
   f.elements.descricao.value = g.descricao ?? "";
-  f.elements.valor.value = g.valor ?? "";
+  f.elements.quantidade.value = g.quantidade ?? 1;
+  // unitário sem arredondar: salvar de novo sem mexer devolve o mesmo total
+  f.elements.unitario.value = g.id ? g.valor / g.quantidade : "";
   f.elements.pago_por.value = g.pago_por ?? ev.pessoas[0].id;
   $("dlgEventoGasto").showModal();
 }
@@ -1076,7 +1080,7 @@ $("copiarDivisao").addEventListener("click", tentar(async () => {
   const ev = eventoAtual(), d = dividir(ev.pessoas, ev.gastos, ev.pagamentos);
   // moeda direto: o resumo vai para o grupo com os valores, mesmo com a tela ocultando
   await navigator.clipboard.writeText([`${ev.nome} (${dataBr(ev.data)})`, `Total: ${moeda(d.total)} · ${moeda(d.parte)} por pessoa`, "",
-    ...ev.gastos.map(g => `- ${g.descricao}: ${moeda(g.valor)} (${ev.pessoas.find(p => p.id === g.pago_por)?.nome})`), "",
+    ...ev.gastos.map(g => `- ${g.descricao}${g.quantidade === 1 ? "" : ` (${g.quantidade.toLocaleString("pt-BR")}x)`}: ${moeda(g.valor)} (${ev.pessoas.find(p => p.id === g.pago_por)?.nome})`), "",
     ...(d.acertos.length ? d.acertos.map(a => `${a.de} paga ${moeda(a.valor)} para ${a.para}`) : ["Ninguém deve nada."])].join("\n"));
   status("Resumo copiado.");
 }));

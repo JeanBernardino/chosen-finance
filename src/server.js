@@ -127,10 +127,13 @@ const rotas = {
   "DELETE /api/eventos": async (req, url) => ({ apagados: await db.apagarEvento(pool, idOuNulo(url.searchParams.get("id"))) }),
   "POST /api/eventos/gastos": async req => {
     const g = JSON.parse(await corpo(req));
-    const descricao = texto(g.descricao), valor = Number(g.valor), evento_id = idOuNulo(g.evento_id), pago_por = idOuNulo(g.pago_por);
+    const descricao = texto(g.descricao), quantidade = Number(g.quantidade ?? 1), evento_id = idOuNulo(g.evento_id), pago_por = idOuNulo(g.pago_por);
+    // total sai da quantidade × unitário, em centavos: é ele que entra na divisão
+    const valor = Math.round(quantidade * Number(g.unitario) * 100) / 100;
     if (!descricao || !evento_id || !pago_por) throw invalido("descrição e quem pagou são obrigatórios");
+    if (!(quantidade > 0) || quantidade >= 1e7 || Math.abs(Math.round(quantidade * 1000) - quantidade * 1000) > 1e-6) throw invalido("quantidade deve ser maior que zero (até 3 casas)");
     if (!(valor > 0) || valor >= 1e10) throw invalido("valor deve ser maior que zero");
-    return db.salvarGastoEvento(pool, { id: idOuNulo(g.id), evento_id, descricao, valor, pago_por });
+    return db.salvarGastoEvento(pool, { id: idOuNulo(g.id), evento_id, descricao, quantidade, valor, pago_por });
   },
   // só lê: os itens voltam para a tela revisar antes de lançar. Com ?url é o link da NFC-e; sem, o corpo é a foto
   "POST /api/eventos/recibo": async (req, url) => {
