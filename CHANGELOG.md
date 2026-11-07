@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.40.0] - 2026-11-07
+
+### Melhorado
+
+- **Exportar PDF** do evento não abre mais uma guia nova: o PDF aparece numa janela dentro do app, com **Baixar** e **Compartilhar** (para mandar direto no WhatsApp).
+
 ## [0.39.2] - 2026-11-07
 
 ### Melhorado
