@@ -8,6 +8,15 @@ Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### C
 
 
 
+## [0.34.0] - 2026-11-07
+
+### Novo
+- Gastos do evento agora têm **Quantidade**, **Valor unitário** e **Valor total**. No cadastro do gasto você informa a quantidade e o valor unitário; o total sai da conta.
+
+### Melhorado
+- O mesmo item não se repete na lista: lançar de novo um item com a mesma descrição e o mesmo pagador soma na quantidade e no total. Vale também para os itens lidos do recibo e para os gastos repetidos que já existiam.
+- O resumo copiado mostra a quantidade dos itens com mais de uma unidade.
+
 ## [0.33.0] - 2026-11-06
 
 ### Novo
