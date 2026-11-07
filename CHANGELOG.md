@@ -3,6 +3,14 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.39.0] - 2026-11-07
+
+### Novo
+- **Acréscimo nos eventos:** no cadastro do evento, informe um percentual para cobrar a mais em cima de tudo, pela organização. O valor extra fica com quem recebe o Pix (sem Pix, com o primeiro participante).
+
+### Melhorado
+- A parte de cada participante nos eventos agora arredonda sempre para cima: quem tem o mesmo peso paga exatamente o mesmo valor. Os centavos que sobram ficam com quem organiza.
+
 ## [0.38.0] - 2026-11-07
 
 ### Novo
