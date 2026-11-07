@@ -8,6 +8,15 @@ Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### C
 
 
 
+## [0.36.0] - 2026-11-07
+
+### Novo
+- Na **Divisão** do evento, cada participante tem um **Peso**. Quem tem peso 2 paga o dobro de quem tem 1: se você comeu 2 hambúrgueres e outra pessoa comeu 1, ela paga metade do que você paga. Basta mudar o número na tabela, a divisão recalcula na hora. No casal, cada um tem o seu peso e o acerto continua junto.
+
+### Melhorado
+- Com pesos diferentes, o indicador mostra o valor **Por peso 1** e o resumo copiado traz a parte de cada participante.
+- O **Quem consumiu** por gasto da versão anterior saiu: o peso na divisão substitui.
+
 ## [0.35.0] - 2026-11-07
 
 ### Novo
