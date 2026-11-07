@@ -948,14 +948,14 @@ function renderEvento() {
   $("detalheEvento").hidden = !ev;
   for (const b of document.querySelectorAll("[data-view=eventos] .so-detalhe")) b.hidden = !ev;
   if (!ev) return gradeEventos(eventos.filter(e => e.ativo || $("eventosInativos").checked).map(e => ({ ...e,
-    participantes: e.pessoas.length, total: e.gastos.reduce((s, g) => s + g.valor, 0) })));
+    participantes: e.pessoas.length, total: dividirEvento(e).cobrado })));
   $("nomeEvento").textContent = `${ev.nome} · ${dataBr(ev.data)}${ev.ativo ? "" : " (inativo)"}`;
   const d = dividirEvento(ev), nome = id => ev.pessoas.find(p => p.id === id)?.nome ?? "";
   const grupo = id => { const p = ev.pessoas.find(p => p.id === id); return p?.grupo ?? p?.nome ?? ""; };
   // QR só nos acertos para quem recebe o Pix do evento (ou o casal dele)
   const paraMim = id => !!ev.pix_chave && ev.pessoas.some(p => (p.grupo ?? p.nome) === grupo(id) && p.nome === ev.pix_nome);
   $("kpisEvento").innerHTML = `
-    <div class="kpi destaque"><span>Gasto total</span><strong>${brl(d.total)}</strong><small>${ev.gastos.length} gastos${d.cobrado > d.total ? ` · cobrado ${brl(d.cobrado)}` : ""}</small></div>
+    <div class="kpi destaque"><span>Total${comAcrescimo(ev)}</span><strong>${brl(d.cobrado)}</strong><small>${ev.gastos.length} gastos${d.cobrado > d.total ? ` · ${brl(d.total)} + ${brl(d.cobrado - d.total)}` : ""}</small></div>
     <div class="kpi"><span>${d.igual ? "Por pessoa" : "Por peso 1"}</span><strong>${brl(d.parte)}</strong><small>${ev.pessoas.length} participantes${comAcrescimo(ev)}</small></div>`;
   $("acertos").textContent = !d.total ? "Lance os gastos para ver a divisão." : d.acertos.length ? "Clique no saldo de quem pagou para marcar." : "Ninguém deve nada: já está acertado.";
   gradeEventoGastos(ev.gastos.map(g => ({ ...g, pagador: nome(g.pago_por), unitario: g.valor / g.quantidade })));
@@ -1088,7 +1088,7 @@ $("copiarPix").addEventListener("click", tentar(async () => {
 $("copiarDivisao").addEventListener("click", tentar(async () => {
   const ev = eventoAtual(), d = dividirEvento(ev);
   // moeda direto: o resumo vai para o grupo com os valores, mesmo com a tela ocultando
-  await navigator.clipboard.writeText([`${ev.nome} (${dataBr(ev.data)})`, `Total: ${moeda(d.total)} · ${moeda(d.parte)} ${d.igual ? "por pessoa" : "por peso 1"}${comAcrescimo(ev)}`, "",
+  await navigator.clipboard.writeText([`${ev.nome} (${dataBr(ev.data)})`, `Total: ${moeda(d.cobrado)}${d.cobrado > d.total ? ` (gastos ${moeda(d.total)} + acréscimo ${moeda(d.cobrado - d.total)})` : ""} · ${moeda(d.parte)} ${d.igual ? "por pessoa" : "por peso 1"}${comAcrescimo(ev)}`, "",
     ...ev.gastos.map(g => `- ${g.descricao}${g.quantidade === 1 ? "" : ` (${g.quantidade.toLocaleString("pt-BR")}x)`}: ${moeda(g.valor)} (${ev.pessoas.find(p => p.id === g.pago_por)?.nome})`), "",
     ...(d.igual ? [] : [...d.saldos.map(s => `${s.nome}: ${moeda(s.parte)}`), ""]),
     ...(d.acertos.length ? d.acertos.map(a => `${a.de} paga ${moeda(a.valor)} para ${a.para}`) : ["Ninguém deve nada."])].join("\n"));
@@ -1137,19 +1137,18 @@ $("exportarEvento").addEventListener("click", tentar(() => {
 <header><div class="marca"><img src="${location.origin}/logo.png" alt="">Chosen Finance</div><div class="impresso">Impresso em<br>${impresso}</div></header>
 <h1>${esc(ev.nome)}</h1><p class="sub">Evento de ${dataBr(ev.data)} · ${ev.pessoas.length} participantes</p>
 <div class="kpis">
-  <div class="kpi destaque"><span>Gasto total</span><strong>${moeda(d.total)}</strong></div>
+  <div class="kpi destaque"><span>Total${comAcrescimo(ev)}</span><strong>${moeda(d.cobrado)}</strong></div>
   <div class="kpi"><span>${d.igual ? "Por pessoa" : "Por peso 1"}${comAcrescimo(ev)}</span><strong>${moeda(d.parte)}</strong></div>
   <div class="kpi"><span>Itens lançados</span><strong>${ev.gastos.length}</strong></div>
 </div>
 <section><h2>O que foi gasto</h2><table>
   <thead><tr><th>Descrição</th><th>Pago por</th><th class="num">Qtd.</th><th class="num">Unitário</th><th class="num">Total</th></tr></thead>
   <tbody>${[...ev.gastos].sort((a, b) => b.valor - a.valor).map(g => `<tr><td>${esc(g.descricao)}</td><td>${esc(nome(g.pago_por))}</td><td class="num">${g.quantidade.toLocaleString("pt-BR")}</td><td class="num">${moeda(g.valor / g.quantidade)}</td><td class="num">${moeda(g.valor)}</td></tr>`).join("") || `<tr><td colspan="5">Nenhum gasto lançado.</td></tr>`}</tbody>
-  <tfoot><tr><td colspan="4">Total</td><td class="num">${moeda(d.total)}</td></tr></tfoot>
+  <tfoot>${d.cobrado > d.total ? `<tr><td colspan="4">Gastos</td><td class="num">${moeda(d.total)}</td></tr><tr><td colspan="4">Acréscimo${comAcrescimo(ev)}</td><td class="num">${moeda(d.cobrado - d.total)}</td></tr>` : ""}<tr><td colspan="4">Total</td><td class="num">${moeda(d.cobrado)}</td></tr></tfoot>
 </table></section>
 <section><h2>Quanto cabe a cada um</h2><table>
   <thead><tr><th>Participante</th><th class="num">Parte</th><th class="num">Já pagou</th><th class="num">Acertado</th><th class="num">Saldo</th></tr></thead>
   <tbody>${d.saldos.map(s => `<tr><td>${esc(s.nome)}</td><td class="num">${moeda(s.parte)}</td><td class="num">${moeda(s.pagou)}</td><td class="num">${s.acertado ? moeda(s.acertado) : "—"}</td><td class="num">${Math.abs(s.saldo) < 0.005 ? "acertado" : s.saldo > 0 ? `recebe ${moeda(s.saldo)}` : `paga ${moeda(-s.saldo)}`}</td></tr>`).join("")}</tbody>
-  ${d.cobrado > d.total ? `<tfoot><tr><td>Total cobrado${comAcrescimo(ev)}</td><td class="num">${moeda(d.cobrado)}</td><td colspan="3"></td></tr></tfoot>` : ""}
 </table></section>
 <section><h2>Quem paga quem</h2>${d.acertos.length
   ? `<ul class="acertos">${d.acertos.map(a => `<li><span><b>${esc(a.de)}</b> paga para <b>${esc(a.para)}</b>${ev.pix_chave && ev.pessoas.some(p => (p.grupo ?? p.nome) === a.para && p.nome === ev.pix_nome) ? ` · Pix: ${esc(ev.pix_chave)}` : ""}</span><strong>${moeda(a.valor)}</strong></li>`).join("")}</ul>`
