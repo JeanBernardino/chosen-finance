@@ -118,11 +118,11 @@ test("dividir cobra pelo peso: quem tem 2 paga o dobro de quem tem 1", () => {
   const r = dividir(pessoas, [{ valor: 90, pago_por: 1 }]);
   assert.equal(r.igual, false);
   assert.equal(r.parte, 30);
-  assert.deepEqual(r.saldos.map(s => s.parte), [60, 30]);
+  assert.deepEqual(r.saldos.map(s => [s.peso, s.parte]), [[2, 60], [1, 30]]);
   assert.deepEqual(r.acertos.map(a => [a.de, a.para, a.valor]), [["Jennifer", "Eu", 30]]);
   // 10 / 3 com pesos 1,1,1: o centavo que sobra vai para o primeiro e o total fecha; peso do casal soma no grupo
   assert.deepEqual(dividir([{ id: 1, nome: "A" }, { id: 2, nome: "B", grupo: "B + C", peso: 1.5 }, { id: 3, nome: "C", grupo: "B + C", peso: 0.5 }],
-    [{ valor: 10, pago_por: 1 }]).saldos.map(s => s.parte), [3.34, 6.67]);
+    [{ valor: 10, pago_por: 1 }]).saldos.map(s => [s.peso, s.parte]), [[1, 3.34], [2, 6.67]]);
 });
 
 test("dividir dá o mesmo valor para o mesmo peso e cobra o acréscimo para o organizador", () => {

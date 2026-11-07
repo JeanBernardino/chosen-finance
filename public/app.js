@@ -1164,8 +1164,8 @@ $("exportarEvento").addEventListener("click", tentar(async () => {
   <tbody>${[...ev.gastos].sort((a, b) => b.valor - a.valor).map(g => `<tr><td>${esc(g.descricao)}</td><td>${esc(nome(g.pago_por))}</td><td class="num">${g.quantidade.toLocaleString("pt-BR")}</td><td class="num">${moeda(g.valor / g.quantidade)}</td><td class="num">${moeda(g.valor)}</td></tr>`).join("") || `<tr><td colspan="5">Nenhum gasto lançado.</td></tr>`}</tbody>
 </table></section>
 <section><h2>Quanto cabe a cada um</h2><table>
-  <thead><tr><th>Participante</th><th class="num">Parte</th><th class="num">Já pagou</th><th class="num">Acertado</th><th class="num">Saldo</th></tr></thead>
-  <tbody>${d.saldos.map(s => `<tr><td>${esc(s.nome)}</td><td class="num">${moeda(s.parte)}</td><td class="num">${moeda(s.pagou)}</td><td class="num">${s.acertado ? moeda(s.acertado) : "—"}</td><td class="num">${Math.abs(s.saldo) < 0.005 ? "acertado" : s.saldo > 0 ? `recebe ${moeda(s.saldo)}` : `paga ${moeda(-s.saldo)}`}</td></tr>`).join("")}</tbody>
+  <thead><tr><th>Participante</th><th class="num">Peso</th><th class="num">Parte</th><th class="num">Já pagou</th><th class="num">Acertado</th><th class="num">Saldo</th></tr></thead>
+  <tbody>${d.saldos.map(s => `<tr><td>${esc(s.nome)}</td><td class="num">${s.peso.toLocaleString("pt-BR")}</td><td class="num">${moeda(s.parte)}</td><td class="num">${moeda(s.pagou)}</td><td class="num">${s.acertado ? moeda(s.acertado) : "—"}</td><td class="num">${Math.abs(s.saldo) < 0.005 ? "acertado" : s.saldo > 0 ? `recebe ${moeda(s.saldo)}` : `paga ${moeda(-s.saldo)}`}</td></tr>`).join("")}</tbody>
 </table></section>
 <section><h2>Quem paga quem</h2>${d.acertos.length
   ? `<ul class="acertos">${d.acertos.map(a => `<li><span><b>${esc(a.de)}</b> paga para <b>${esc(a.para)}</b>${ev.pix_chave && ev.pessoas.some(p => (p.grupo ?? p.nome) === a.para && p.nome === ev.pix_nome) ? ` · Pix: ${esc(ev.pix_chave)}` : ""}</span><strong>${moeda(a.valor)}</strong></li>`).join("")}</ul>`

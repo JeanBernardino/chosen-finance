@@ -141,9 +141,10 @@ export function dividir(pessoas, gastos, pagamentos = [], { acrescimo = 0, organ
   const cima = peso => Math.ceil(total * peso * (1 + acrescimo / 100) / soma - 1e-6), partes = pesos.map(cima);
   const unidades = new Map(), daPessoa = new Map();
   pessoas.forEach((p, i) => {
-    const k = p.grupo ?? `#${p.id}`, u = unidades.get(k) ?? { id: p.id, nome: p.grupo ?? p.nome, pagou: 0, parte: 0, acertado: 0, extra: 0 };
+    const k = p.grupo ?? `#${p.id}`, u = unidades.get(k) ?? { id: p.id, nome: p.grupo ?? p.nome, pagou: 0, parte: 0, peso: 0, acertado: 0, extra: 0 };
     u.pagou += gastos.filter(g => g.pago_por === p.id).reduce((s, g) => s + cent(g.valor), 0);
     u.parte += partes[i];
+    u.peso += pesos[i];
     unidades.set(k, u);
     daPessoa.set(p.id, u);
   });
