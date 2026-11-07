@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.41.0] - 2026-11-07
+
+### Melhorado
+
+- No PDF do evento, a tabela **Quanto cabe a cada um** mostra o peso de cada participante. Assim fica claro por que um paga mais que outro. No casal, aparece a soma dos pesos dos dois.
+
 ## [0.40.0] - 2026-11-07
 
 ### Melhorado
