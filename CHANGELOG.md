@@ -3,6 +3,11 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.39.2] - 2026-11-07
+
+### Melhorado
+- Nos eventos, a tela, o resumo copiado e o PDF mostram só o valor final de cada um, sem detalhar o acréscimo.
+
 ## [0.39.1] - 2026-11-07
 
 ### Corrigido
