@@ -8,6 +8,15 @@ Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### C
 
 
 
+## [0.35.0] - 2026-11-07
+
+### Novo
+- No gasto do evento, **Quem consumiu (opcional)** diz quanto cada participante consumiu do item. Só quem tem quantidade paga aquele item, na proporção: quem comeu 2 hambúrgueres paga o dobro de quem comeu 1, e quem não comeu não paga. Deixando tudo vazio, o gasto continua dividido igual entre todos.
+
+### Melhorado
+- A lista de gastos mostra o consumo de cada pessoa embaixo da descrição.
+- Quando as partes variam, o indicador vira **Média por pessoa** e o resumo copiado traz o consumo de cada item e a parte de cada participante.
+
 ## [0.34.0] - 2026-11-07
 
 ### Novo
