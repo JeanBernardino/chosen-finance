@@ -489,6 +489,11 @@
       <label>Valor unitário (R$)<input type="number" name="unitario" min="0.01" step="any" inputmode="decimal" required></label>
     </div>
     <small>Item que já está no evento com o mesmo pagador soma na quantidade em vez de repetir.</small>
+    <details id="eventoConsumoBloco">
+      <summary>Quem consumiu (opcional)</summary>
+      <small>Ex.: hambúrguer, um comeu 1 e outro 2. Só quem tem quantidade paga este item, na proporção do que consumiu. Tudo vazio divide igual entre todos.</small>
+      <div class="duas" id="eventoConsumo"></div>
+    </details>
     <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
   </form>
 </dialog>

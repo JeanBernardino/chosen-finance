@@ -124,21 +124,38 @@ export function porEstabelecimento(gastos) {
   return [...m.values()].map(e => ({ ...e, meses: Object.keys(e.porMes).length })).sort((a, b) => b.vezes - a.vezes || b.total - a.total);
 }
 
+// reparte `total` centavos pelos pesos; o centavo que sobra vai para os primeiros da lista com peso
+const ratear = (total, pesos) => {
+  const soma = pesos.reduce((s, p) => s + p, 0), r = pesos.map(p => Math.floor(total * p / soma));
+  for (let i = 0, sobra = total - r.reduce((s, x) => s + x, 0); sobra > 0 && i < pesos.length; i++) if (pesos[i]) { r[i]++; sobra--; }
+  return r;
+};
+
 /**
- * Racha os gastos de um evento em partes iguais e diz quem paga quem.
+ * Racha os gastos de um evento e diz quem paga quem.
+ * Gasto com `consumo` ({ id da pessoa: quantidade }) vai só para quem consumiu, proporcional à quantidade
+ * (2 hambúrgueres pagam o dobro de 1); sem consumo, entra na parte igual de todos.
  * Conta em centavos: o centavo que sobra da divisão vai para os primeiros da lista, e os saldos fecham em zero.
  * Pessoas com o mesmo `grupo` (casal, família) contam uma parte cada, mas acertam juntas, em nome do grupo.
  * `pagamentos` são acertos já feitos ({ de, para, valor } com ids de pessoa): abatem do saldo, e o que falta é recalculado.
  * Acerto guloso: quem mais deve paga a quem mais tem a receber, o que dá no máximo uma transferência a menos que o nº de grupos.
  */
 export function dividir(pessoas, gastos, pagamentos = []) {
-  const cent = v => Math.round(v * 100), n = pessoas.length;
-  const total = gastos.reduce((s, g) => s + cent(g.valor), 0), base = n ? Math.floor(total / n) : 0;
+  const cent = v => Math.round(v * 100), n = pessoas.length, partes = pessoas.map(() => 0);
+  const total = gastos.reduce((s, g) => s + cent(g.valor), 0);
+  let igual = 0;
+  for (const g of gastos) {
+    // consumo de quem saiu do evento não conta; sem ninguém que conte, volta para a parte igual
+    const pesos = pessoas.map(p => Number(g.consumo?.[p.id]) || 0);
+    if (pesos.some(Boolean)) ratear(cent(g.valor), pesos).forEach((v, i) => partes[i] += v);
+    else igual += cent(g.valor);
+  }
+  if (n) ratear(igual, partes.map(() => 1)).forEach((v, i) => partes[i] += v);
   const unidades = new Map(), daPessoa = new Map();
   pessoas.forEach((p, i) => {
     const k = p.grupo ?? `#${p.id}`, u = unidades.get(k) ?? { id: p.id, nome: p.grupo ?? p.nome, pagou: 0, parte: 0, acertado: 0 };
     u.pagou += gastos.filter(g => g.pago_por === p.id).reduce((s, g) => s + cent(g.valor), 0);
-    u.parte += base + (i < total - base * n ? 1 : 0);
+    u.parte += partes[i];
     unidades.set(k, u);
     daPessoa.set(p.id, u);
   });
@@ -157,7 +174,8 @@ export function dividir(pessoas, gastos, pagamentos = []) {
     if (!(recebe[j].v -= v)) j++;
   }
   return {
-    total: total / 100, parte: n ? total / n / 100 : 0, acertos,
+    // parte é a média: com consumo, cada um tem a sua em saldos
+    total: total / 100, parte: n ? total / n / 100 : 0, igual: !gastos.some(g => pessoas.some(p => g.consumo?.[p.id] > 0)), acertos,
     saldos: saldos.map(s => ({ ...s, pagou: s.pagou / 100, parte: s.parte / 100, acertado: s.acertado / 100, saldo: s.saldo / 100 })),
   };
 }

@@ -108,8 +108,19 @@ test("dividir racha em partes iguais e acerta quem pagou com quem deve", () => {
   assert.deepEqual(r.saldos.map(s => s.parte), [33.34, 33.33, 33.33]);
   assert.equal(Math.round(r.saldos.reduce((s, x) => s + x.saldo, 0) * 100), 0);
   assert.deepEqual(r.acertos, [{ de: "Beto", de_id: 3, para: "Eu", para_id: 1, valor: 33.33 }, { de: "Ana", de_id: 2, para: "Eu", para_id: 1, valor: 3.33 }]);
-  assert.deepEqual(dividir([], []), { total: 0, parte: 0, acertos: [], saldos: [] });
+  assert.deepEqual(dividir([], []), { total: 0, parte: 0, igual: true, acertos: [], saldos: [] });
   assert.deepEqual(dividir(pessoas, [{ valor: 30, pago_por: 1 }, { valor: 30, pago_por: 2 }, { valor: 30, pago_por: 3 }]).acertos, []);
+});
+
+test("dividir cobra o item com consumo só de quem consumiu, na proporção", () => {
+  const pessoas = [{ id: 1, nome: "Eu" }, { id: 2, nome: "Ana" }, { id: 3, nome: "Beto" }];
+  // 3 hambúrgueres de 20: Ana comeu 2, Beto 1, eu nenhum; a bebida de 30 divide igual; id 9 saiu do evento e não conta
+  const r = dividir(pessoas, [{ valor: 60, pago_por: 1, consumo: { 2: 2, 3: 1, 9: 5 } }, { valor: 30, pago_por: 1 }]);
+  assert.equal(r.igual, false);
+  assert.deepEqual(r.saldos.map(s => s.parte), [10, 50, 30]);
+  assert.deepEqual(r.acertos.map(a => [a.de, a.valor]), [["Ana", 50], ["Beto", 30]]);
+  // 10 / 3 por consumo igual: o centavo que sobra vai para o primeiro que consumiu, e o total fecha
+  assert.deepEqual(dividir(pessoas, [{ valor: 10, pago_por: 1, consumo: { 2: 1, 3: 1 } }, { valor: 0.01, pago_por: 1, consumo: { 9: 1 } }]).saldos.map(s => s.parte), [0.01, 5, 5]);
 });
 
 test("dividir cobra o casal junto e abate os acertos já pagos", () => {
