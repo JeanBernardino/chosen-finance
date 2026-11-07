@@ -3,6 +3,11 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.38.0] - 2026-11-07
+
+### Novo
+- **Exportar PDF** na divisão do evento: gera um relatório com a logo, o nome da plataforma e a data de impressão, a lista do que foi gasto, a parte de cada participante e quem paga quem (com a chave Pix de quem recebe). Na janela de impressão, escolha **Salvar como PDF** e mande aos amigos.
+
 ## [0.37.0] - 2026-11-07
 
 ### Melhorado
