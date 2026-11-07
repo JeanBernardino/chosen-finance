@@ -1090,6 +1090,73 @@ $("copiarDivisao").addEventListener("click", tentar(async () => {
     ...(d.acertos.length ? d.acertos.map(a => `${a.de} paga ${moeda(a.valor)} para ${a.para}`) : ["Ninguém deve nada."])].join("\n"));
   status("Resumo copiado.");
 }));
+// PDF pelo "Salvar como PDF" da impressão do navegador: sem dependência, e o título vira o nome do arquivo
+$("exportarEvento").addEventListener("click", tentar(() => {
+  const ev = eventoAtual(), d = dividir(ev.pessoas, ev.gastos, ev.pagamentos);
+  const nome = id => ev.pessoas.find(p => p.id === id)?.nome ?? "";
+  const impresso = new Date().toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" });
+  const w = window.open("", "_blank");
+  if (!w) throw new Error("O navegador bloqueou a janela do PDF. Permita pop-ups para este site.");
+  // moeda direto, como no resumo copiado: o PDF vai para os amigos mesmo com a tela ocultando
+  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>${esc(ev.nome)} - ${dataBr(ev.data).replaceAll("/", "-")}</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font: 12px/1.5 "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; color: #101c18; background: #fff; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; border-bottom: 2px solid #00C878; }
+  .marca { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 650; color: #064E3B; letter-spacing: -.01em; }
+  .marca img { width: 32px; height: 31px; }
+  .impresso { color: #64746e; font-size: 11px; text-align: right; }
+  h1 { font-size: 24px; margin: 22px 0 2px; letter-spacing: -.02em; font-weight: 650; }
+  .sub { color: #64746e; margin: 0 0 18px; }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 22px; }
+  .kpi { border: 1px solid #e3e9e6; border-radius: 10px; padding: 10px 14px; }
+  .kpi span { display: block; color: #64746e; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; }
+  .kpi strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+  .kpi.destaque { background: #022C22; border-color: #022C22; color: #fff; }
+  .kpi.destaque span { color: #7fa898; }
+  h2 { font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: .06em; color: #064E3B; }
+  section { margin-bottom: 22px; break-inside: avoid; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #64746e; padding: 6px 8px; border-bottom: 1px solid #e3e9e6; }
+  td { padding: 7px 8px; border-bottom: 1px solid #eef2f0; }
+  tr { break-inside: avoid; }
+  tfoot td { font-weight: 650; border-bottom: 0; border-top: 2px solid #101c18; }
+  .acertos { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+  .acertos li { display: flex; justify-content: space-between; align-items: center; background: #e3f8ee; border-radius: 8px; padding: 9px 14px; }
+  .acertos strong { color: #064E3B; font-size: 14px; }
+  .ok { color: #008F63; font-weight: 600; }
+  footer { color: #64746e; font-size: 10.5px; text-align: center; margin-top: 28px; padding-top: 10px; border-top: 1px solid #e3e9e6; }
+</style></head><body>
+<header><div class="marca"><img src="${location.origin}/logo.png" alt="">Chosen Finance</div><div class="impresso">Impresso em<br>${impresso}</div></header>
+<h1>${esc(ev.nome)}</h1><p class="sub">Evento de ${dataBr(ev.data)} · ${ev.pessoas.length} participantes</p>
+<div class="kpis">
+  <div class="kpi destaque"><span>Gasto total</span><strong>${moeda(d.total)}</strong></div>
+  <div class="kpi"><span>${d.igual ? "Por pessoa" : "Por peso 1"}</span><strong>${moeda(d.parte)}</strong></div>
+  <div class="kpi"><span>Itens lançados</span><strong>${ev.gastos.length}</strong></div>
+</div>
+<section><h2>O que foi gasto</h2><table>
+  <thead><tr><th>Descrição</th><th>Pago por</th><th class="num">Qtd.</th><th class="num">Unitário</th><th class="num">Total</th></tr></thead>
+  <tbody>${[...ev.gastos].sort((a, b) => b.valor - a.valor).map(g => `<tr><td>${esc(g.descricao)}</td><td>${esc(nome(g.pago_por))}</td><td class="num">${g.quantidade.toLocaleString("pt-BR")}</td><td class="num">${moeda(g.valor / g.quantidade)}</td><td class="num">${moeda(g.valor)}</td></tr>`).join("") || `<tr><td colspan="5">Nenhum gasto lançado.</td></tr>`}</tbody>
+  <tfoot><tr><td colspan="4">Total</td><td class="num">${moeda(d.total)}</td></tr></tfoot>
+</table></section>
+<section><h2>Quanto cabe a cada um</h2><table>
+  <thead><tr><th>Participante</th><th class="num">Parte</th><th class="num">Já pagou</th><th class="num">Acertado</th><th class="num">Saldo</th></tr></thead>
+  <tbody>${d.saldos.map(s => `<tr><td>${esc(s.nome)}</td><td class="num">${moeda(s.parte)}</td><td class="num">${moeda(s.pagou)}</td><td class="num">${s.acertado ? moeda(s.acertado) : "—"}</td><td class="num">${Math.abs(s.saldo) < 0.005 ? "acertado" : s.saldo > 0 ? `recebe ${moeda(s.saldo)}` : `paga ${moeda(-s.saldo)}`}</td></tr>`).join("")}</tbody>
+</table></section>
+<section><h2>Quem paga quem</h2>${d.acertos.length
+  ? `<ul class="acertos">${d.acertos.map(a => `<li><span><b>${esc(a.de)}</b> paga para <b>${esc(a.para)}</b>${ev.pix_chave && ev.pessoas.some(p => (p.grupo ?? p.nome) === a.para && p.nome === ev.pix_nome) ? ` · Pix: ${esc(ev.pix_chave)}` : ""}</span><strong>${moeda(a.valor)}</strong></li>`).join("")}</ul>`
+  : `<p class="ok">Ninguém deve nada: já está tudo acertado.</p>`}</section>
+<footer>Gerado pelo Chosen Finance</footer>
+</body></html>`);
+  w.document.close();
+  // espera a logo carregar para ela sair no PDF
+  const img = w.document.querySelector("img");
+  const imprimir = () => { w.focus(); w.print(); };
+  img.complete ? imprimir() : (img.onload = img.onerror = imprimir);
+}));
 $("linhasEventoGastos").addEventListener("click", tentar(async e => {
   const editar = e.target.closest("[data-editar]")?.dataset.editar;
   if (editar) return abrirEventoGasto(eventoAtual().gastos.find(g => g.id === +editar));
