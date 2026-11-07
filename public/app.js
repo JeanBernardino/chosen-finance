@@ -941,7 +941,6 @@ async function carregarEventos(id) {
 }
 // o organizador é quem recebe o Pix: só vale com chave, como o servidor grava
 const dividirEvento = ev => dividir(ev.pessoas, ev.gastos, ev.pagamentos, { acrescimo: ev.acrescimo, organizador: ev.pix_chave ? ev.pix_nome : null });
-const comAcrescimo = ev => ev.acrescimo ? ` · +${ev.acrescimo.toLocaleString("pt-BR")}%` : "";
 function renderEvento() {
   const ev = eventoAtual();
   $("listaEventos").hidden = !!ev;
@@ -955,8 +954,8 @@ function renderEvento() {
   // QR só nos acertos para quem recebe o Pix do evento (ou o casal dele)
   const paraMim = id => !!ev.pix_chave && ev.pessoas.some(p => (p.grupo ?? p.nome) === grupo(id) && p.nome === ev.pix_nome);
   $("kpisEvento").innerHTML = `
-    <div class="kpi destaque"><span>Total${comAcrescimo(ev)}</span><strong>${brl(d.cobrado)}</strong><small>${ev.gastos.length} gastos${d.cobrado > d.total ? ` · ${brl(d.total)} + ${brl(d.cobrado - d.total)}` : ""}</small></div>
-    <div class="kpi"><span>${d.igual ? "Por pessoa" : "Por peso 1"}</span><strong>${brl(d.parte)}</strong><small>${ev.pessoas.length} participantes${comAcrescimo(ev)}</small></div>`;
+    <div class="kpi destaque"><span>Total</span><strong>${brl(d.cobrado)}</strong><small>${ev.gastos.length} gastos</small></div>
+    <div class="kpi"><span>${d.igual ? "Por pessoa" : "Por peso 1"}</span><strong>${brl(d.parte)}</strong><small>${ev.pessoas.length} participantes</small></div>`;
   $("acertos").textContent = !d.total ? "Lance os gastos para ver a divisão." : d.acertos.length ? "Clique no saldo de quem pagou para marcar." : "Ninguém deve nada: já está acertado.";
   gradeEventoGastos(ev.gastos.map(g => ({ ...g, pagador: nome(g.pago_por), unitario: g.valor / g.quantidade })));
   // devedor: o acerto pendente e o já pago ficam na própria linha, um botão só alterna entre os dois
@@ -1088,7 +1087,7 @@ $("copiarPix").addEventListener("click", tentar(async () => {
 $("copiarDivisao").addEventListener("click", tentar(async () => {
   const ev = eventoAtual(), d = dividirEvento(ev);
   // moeda direto: o resumo vai para o grupo com os valores, mesmo com a tela ocultando
-  await navigator.clipboard.writeText([`${ev.nome} (${dataBr(ev.data)})`, `Total: ${moeda(d.cobrado)}${d.cobrado > d.total ? ` (gastos ${moeda(d.total)} + acréscimo ${moeda(d.cobrado - d.total)})` : ""} · ${moeda(d.parte)} ${d.igual ? "por pessoa" : "por peso 1"}${comAcrescimo(ev)}`, "",
+  await navigator.clipboard.writeText([`${ev.nome} (${dataBr(ev.data)})`, `Total: ${moeda(d.cobrado)} · ${moeda(d.parte)} ${d.igual ? "por pessoa" : "por peso 1"}`, "",
     ...ev.gastos.map(g => `- ${g.descricao}${g.quantidade === 1 ? "" : ` (${g.quantidade.toLocaleString("pt-BR")}x)`}: ${moeda(g.valor)} (${ev.pessoas.find(p => p.id === g.pago_por)?.nome})`), "",
     ...(d.igual ? [] : [...d.saldos.map(s => `${s.nome}: ${moeda(s.parte)}`), ""]),
     ...(d.acertos.length ? d.acertos.map(a => `${a.de} paga ${moeda(a.valor)} para ${a.para}`) : ["Ninguém deve nada."])].join("\n"));
@@ -1137,14 +1136,13 @@ $("exportarEvento").addEventListener("click", tentar(() => {
 <header><div class="marca"><img src="${location.origin}/logo.png" alt="">Chosen Finance</div><div class="impresso">Impresso em<br>${impresso}</div></header>
 <h1>${esc(ev.nome)}</h1><p class="sub">Evento de ${dataBr(ev.data)} · ${ev.pessoas.length} participantes</p>
 <div class="kpis">
-  <div class="kpi destaque"><span>Total${comAcrescimo(ev)}</span><strong>${moeda(d.cobrado)}</strong></div>
-  <div class="kpi"><span>${d.igual ? "Por pessoa" : "Por peso 1"}${comAcrescimo(ev)}</span><strong>${moeda(d.parte)}</strong></div>
+  <div class="kpi destaque"><span>Total</span><strong>${moeda(d.cobrado)}</strong></div>
+  <div class="kpi"><span>${d.igual ? "Por pessoa" : "Por peso 1"}</span><strong>${moeda(d.parte)}</strong></div>
   <div class="kpi"><span>Itens lançados</span><strong>${ev.gastos.length}</strong></div>
 </div>
 <section><h2>O que foi gasto</h2><table>
   <thead><tr><th>Descrição</th><th>Pago por</th><th class="num">Qtd.</th><th class="num">Unitário</th><th class="num">Total</th></tr></thead>
   <tbody>${[...ev.gastos].sort((a, b) => b.valor - a.valor).map(g => `<tr><td>${esc(g.descricao)}</td><td>${esc(nome(g.pago_por))}</td><td class="num">${g.quantidade.toLocaleString("pt-BR")}</td><td class="num">${moeda(g.valor / g.quantidade)}</td><td class="num">${moeda(g.valor)}</td></tr>`).join("") || `<tr><td colspan="5">Nenhum gasto lançado.</td></tr>`}</tbody>
-  <tfoot>${d.cobrado > d.total ? `<tr><td colspan="4">Gastos</td><td class="num">${moeda(d.total)}</td></tr><tr><td colspan="4">Acréscimo${comAcrescimo(ev)}</td><td class="num">${moeda(d.cobrado - d.total)}</td></tr>` : ""}<tr><td colspan="4">Total</td><td class="num">${moeda(d.cobrado)}</td></tr></tfoot>
 </table></section>
 <section><h2>Quanto cabe a cada um</h2><table>
   <thead><tr><th>Participante</th><th class="num">Parte</th><th class="num">Já pagou</th><th class="num">Acertado</th><th class="num">Saldo</th></tr></thead>
