@@ -13,6 +13,7 @@ import * as pix from "./pix.js";
 const PORT = Number(process.env.PORT || 4780);
 const PUBLIC = new URL("../public/", import.meta.url).pathname;
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png" };
+const HTML2PDF = new URL("../node_modules/html2pdf.js/dist/html2pdf.bundle.min.js", import.meta.url);
 const MAX_UPLOAD = 20 * 1024 * 1024;
 // lida a cada pedido, como o CHANGELOG: um release com o servidor no ar já aparece sem reiniciar
 const versao = () => JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url))).version;
@@ -213,6 +214,8 @@ http.createServer(async (req, res) => {
       return res.headersSent || send(200, r);
     }
     if (req.method !== "GET") return send(404, { erro: "não encontrado" });
+    // gerador do PDF do evento: servido do node_modules para não copiar o bundle para public/
+    if (url.pathname === "/vendor/html2pdf.js") return send(200, fs.readFileSync(HTML2PDF), TYPES[".js"]);
     const arquivo = path.join(PUBLIC, path.normalize(url.pathname === "/" ? "index.html" : url.pathname));
     if (!arquivo.startsWith(PUBLIC) || !fs.existsSync(arquivo)) return send(404, "não encontrado", "text/plain");
     send(200, fs.readFileSync(arquivo), TYPES[path.extname(arquivo)] ?? "application/octet-stream");

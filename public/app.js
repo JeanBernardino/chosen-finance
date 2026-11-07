@@ -1093,20 +1093,39 @@ $("copiarDivisao").addEventListener("click", tentar(async () => {
     ...(d.acertos.length ? d.acertos.map(a => `${a.de} paga ${moeda(a.valor)} para ${a.para}`) : ["Ninguém deve nada."])].join("\n"));
   status("Resumo copiado.");
 }));
-// PDF pelo "Salvar como PDF" da impressão do navegador: sem dependência, e o título vira o nome do arquivo
-$("exportarEvento").addEventListener("click", tentar(() => {
+// O PDF é desenhado num iframe fora da tela: o CSS dele não vaza para o app e sai um arquivo de verdade, para baixar ou compartilhar
+const gerarPdf = html => new Promise((ok, falha) => {
+  const f = Object.assign(document.createElement("iframe"), { srcdoc: html });
+  f.style.cssText = "position: fixed; left: -10000px; top: 0; width: 688px; height: 1123px; border: 0"; // 688px: largura útil da A4 com as margens
+  // o load só vem depois do script do gerador e da logo: ela já sai no PDF
+  f.onload = async () => {
+    try {
+      const w = f.contentWindow;
+      // opções clonadas no realm do iframe: o gerador testa constructor === Array, e o array daqui seria "inválido" lá
+      const opcoes = w.structuredClone({ margin: [16, 14], image: { type: "jpeg", quality: 0.95 }, html2canvas: { scale: 2 }, jsPDF: { unit: "mm", format: "a4" }, pagebreak: { mode: "css", avoid: ["tr", "section"] } });
+      ok(await w.html2pdf().set(opcoes).from(w.document.body).outputPdf("blob"));
+    } catch (e) { falha(e); } finally { f.remove(); }
+  };
+  document.body.append(f);
+});
+let urlPdf;
+$("dlgPdf").addEventListener("close", () => { URL.revokeObjectURL(urlPdf); $("pdfVer").src = "about:blank"; });
+$("exportarEvento").addEventListener("click", tentar(async () => {
   const ev = eventoAtual(), d = dividirEvento(ev);
   const nome = id => ev.pessoas.find(p => p.id === id)?.nome ?? "";
   const impresso = new Date().toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" });
-  const w = window.open("", "_blank");
-  if (!w) throw new Error("O navegador bloqueou a janela do PDF. Permita pop-ups para este site.");
+  const titulo = `${ev.nome} - ${dataBr(ev.data).replaceAll("/", "-")}`;
+  status("Gerando PDF…");
+  // logo embutida: o desenho no PDF não carrega a imagem pela URL
+  const blob = await (await fetch("logo.png")).blob();
+  const logo = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(blob); });
   // moeda direto, como no resumo copiado: o PDF vai para os amigos mesmo com a tela ocultando
-  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-<title>${esc(ev.nome)} - ${dataBr(ev.data).replaceAll("/", "-")}</title>
+  const pdf = await gerarPdf(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>${esc(titulo)}</title>
 <style>
-  @page { size: A4; margin: 16mm 14mm; }
-  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { margin: 0; font: 12px/1.5 "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; color: #101c18; background: #fff; }
+  * { box-sizing: border-box; }
+  /* folga lateral: o desenho no PDF corta o que encosta na margem */
+  body { margin: 0; padding: 0 3px; font: 12px/1.5 "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; color: #101c18; background: #fff; }
   .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; border-bottom: 2px solid #00C878; }
   .marca { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 650; color: #064E3B; letter-spacing: -.01em; }
@@ -1133,7 +1152,7 @@ $("exportarEvento").addEventListener("click", tentar(() => {
   .ok { color: #008F63; font-weight: 600; }
   footer { color: #64746e; font-size: 10.5px; text-align: center; margin-top: 28px; padding-top: 10px; border-top: 1px solid #e3e9e6; }
 </style></head><body>
-<header><div class="marca"><img src="${location.origin}/logo.png" alt="">Chosen Finance</div><div class="impresso">Impresso em<br>${impresso}</div></header>
+<header><div class="marca"><img src="${logo}" alt="">Chosen Finance</div><div class="impresso">Impresso em<br>${impresso}</div></header>
 <h1>${esc(ev.nome)}</h1><p class="sub">Evento de ${dataBr(ev.data)} · ${ev.pessoas.length} participantes</p>
 <div class="kpis">
   <div class="kpi destaque"><span>Total</span><strong>${moeda(d.cobrado)}</strong></div>
@@ -1152,12 +1171,22 @@ $("exportarEvento").addEventListener("click", tentar(() => {
   ? `<ul class="acertos">${d.acertos.map(a => `<li><span><b>${esc(a.de)}</b> paga para <b>${esc(a.para)}</b>${ev.pix_chave && ev.pessoas.some(p => (p.grupo ?? p.nome) === a.para && p.nome === ev.pix_nome) ? ` · Pix: ${esc(ev.pix_chave)}` : ""}</span><strong>${moeda(a.valor)}</strong></li>`).join("")}</ul>`
   : `<p class="ok">Ninguém deve nada: já está tudo acertado.</p>`}</section>
 <footer>Gerado pelo Chosen Finance</footer>
+<script src="/vendor/html2pdf.js"></script>
 </body></html>`);
-  w.document.close();
-  // espera a logo carregar para ela sair no PDF
-  const img = w.document.querySelector("img");
-  const imprimir = () => { w.focus(); w.print(); };
-  img.complete ? imprimir() : (img.onload = img.onerror = imprimir);
+  const arquivo = new File([pdf], `${titulo}.pdf`, { type: "application/pdf" });
+  urlPdf = URL.createObjectURL(arquivo);
+  $("tPdf").textContent = ev.nome;
+  $("pdfVer").src = urlPdf;
+  Object.assign($("baixarPdf"), { href: urlPdf, download: arquivo.name });
+  // compartilhar abre a folha do sistema (WhatsApp incluso); navegador sem suporte a arquivos fica só com o baixar
+  const compartilhar = $("compartilharPdf");
+  compartilhar.disabled = !navigator.canShare?.({ files: [arquivo] });
+  compartilhar.title = compartilhar.disabled ? "Este navegador não compartilha arquivos. Baixe e envie pelo WhatsApp." : "";
+  compartilhar.onclick = tentar(async () => {
+    try { await navigator.share({ files: [arquivo], title: titulo }); } catch (e) { if (e.name !== "AbortError") throw e; }
+  });
+  status("");
+  $("dlgPdf").showModal();
 }));
 $("linhasEventoGastos").addEventListener("click", tentar(async e => {
   const editar = e.target.closest("[data-editar]")?.dataset.editar;

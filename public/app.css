@@ -268,3 +268,4 @@ table:not(.simulando) .sim { display: none; }
 .sim .btn.link { min-height: 0; }
 tr.cortada td:not(.sim) { color: var(--muted); text-decoration: line-through; }
 #simularAssinaturas[aria-pressed="true"], #simularParcelas[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.pdf-ver { width: 100%; height: min(70vh, 720px); border: 1px solid var(--line); border-radius: 8px; background: #fff; }
