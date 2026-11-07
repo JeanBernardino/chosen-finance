@@ -953,17 +953,17 @@ function renderEvento() {
   const paraMim = id => !!ev.pix_chave && ev.pessoas.some(p => (p.grupo ?? p.nome) === grupo(id) && p.nome === ev.pix_nome);
   $("kpisEvento").innerHTML = `
     <div class="kpi destaque"><span>Gasto total</span><strong>${brl(d.total)}</strong><small>${ev.gastos.length} gastos</small></div>
-    <div class="kpi"><span>${d.igual ? "Por pessoa" : "Média por pessoa"}</span><strong>${brl(d.parte)}</strong><small>${ev.pessoas.length} participantes</small></div>`;
+    <div class="kpi"><span>${d.igual ? "Por pessoa" : "Por peso 1"}</span><strong>${brl(d.parte)}</strong><small>${ev.pessoas.length} participantes</small></div>`;
   $("acertos").textContent = !d.total ? "Lance os gastos para ver a divisão." : d.acertos.length ? "Clique no saldo de quem pagou para marcar." : "Ninguém deve nada: já está acertado.";
-  gradeEventoGastos(ev.gastos.map(g => ({ ...g, pagador: nome(g.pago_por), unitario: g.valor / g.quantidade, consumiu: consumiu(ev, g).join(" · ") })));
+  gradeEventoGastos(ev.gastos.map(g => ({ ...g, pagador: nome(g.pago_por), unitario: g.valor / g.quantidade })));
   // devedor: o acerto pendente e o já pago ficam na própria linha, um botão só alterna entre os dois
   gradeEventoPessoas(d.saldos.map(u => ({ ...u,
     deve: d.acertos.filter(a => a.de_id === u.id).map(a => `${brl(a.valor)} para ${esc(a.para)}`).join(", "),
     pix: Math.round(d.acertos.filter(a => a.de_id === u.id && paraMim(a.para_id)).reduce((s, a) => s + a.valor, 0) * 100) / 100,
-    pagos: ev.pagamentos.filter(p => p.de === u.id) })));
+    pagos: ev.pagamentos.filter(p => p.de === u.id),
+    // casal: um peso para cada um, o acerto continua junto
+    membros: ev.pessoas.filter(p => p.grupo ? p.grupo === u.nome : p.id === u.id) })));
 }
-// "Ana 2", "Beto 1": quem saiu do evento não aparece
-const consumiu = (ev, g) => ev.pessoas.filter(p => g.consumo?.[p.id]).map(p => `${p.nome} ${(+g.consumo[p.id]).toLocaleString("pt-BR")}`);
 const gradeEventos = grade({
   cab: "cabEventos", corpo: "linhasEventos", busca: "buscaEventos",
   chaves: { nome: e => e.nome.toLowerCase() }, ordem: { campo: "data", dir: -1 }, texto: e => e.nome,
@@ -995,7 +995,7 @@ const gradeEventoGastos = grade({
   ordem: { campo: "valor", dir: -1 }, texto: g => `${g.descricao} ${g.pagador}`, vazio: "Nenhum gasto lançado.",
   linha: g => `
     <tr>
-      <td>${esc(g.descricao)}${g.consumiu ? `<br><small class="fraco">${esc(g.consumiu)}</small>` : ""}</td>
+      <td>${esc(g.descricao)}</td>
       <td>${esc(g.pagador)}</td>
       <td class="num mono">${g.quantidade.toLocaleString("pt-BR")}</td>
       <td class="num mono">${brl(g.unitario)}</td>
@@ -1009,6 +1009,7 @@ const gradeEventoPessoas = grade({
   linha: p => `
     <tr>
       <td>${esc(p.nome)}</td>
+      <td class="num">${p.membros.map(m => `<label class="peso-membro">${p.membros.length > 1 ? `${esc(m.nome)} ` : ""}<input type="number" class="peso" data-peso="${m.id}" value="${m.peso}" min="0.001" step="any" inputmode="decimal" aria-label="Peso de ${esc(m.nome)}"></label>`).join(" ")}</td>
       <td class="num mono">${brl(p.pagou)}</td>
       <td class="num mono">${brl(p.parte)}</td>
       <td class="num mono">${!p.acertado ? "" : p.acertado > 0 ? `pagou ${brl(p.acertado)}` : `recebeu ${brl(-p.acertado)}`}</td>
@@ -1048,9 +1049,6 @@ function abrirEventoGasto(g = {}) {
   // unitário sem arredondar: salvar de novo sem mexer devolve o mesmo total
   f.elements.unitario.value = g.id ? g.valor / g.quantidade : "";
   f.elements.pago_por.value = g.pago_por ?? ev.pessoas[0].id;
-  // sem name: o consumo vai montado à parte, fora do FormData
-  $("eventoConsumo").innerHTML = ev.pessoas.map(p => `<label>${esc(p.nome)}<input type="number" data-pessoa="${p.id}" min="0" step="0.001" inputmode="decimal" value="${g.consumo?.[p.id] ?? ""}"></label>`).join("");
-  $("eventoConsumoBloco").open = !!g.consumo;
   $("dlgEventoGasto").showModal();
 }
 $("novoEvento").addEventListener("click", () => abrirEvento());
@@ -1084,10 +1082,9 @@ $("copiarPix").addEventListener("click", tentar(async () => {
 $("copiarDivisao").addEventListener("click", tentar(async () => {
   const ev = eventoAtual(), d = dividir(ev.pessoas, ev.gastos, ev.pagamentos);
   // moeda direto: o resumo vai para o grupo com os valores, mesmo com a tela ocultando
-  await navigator.clipboard.writeText([`${ev.nome} (${dataBr(ev.data)})`, `Total: ${moeda(d.total)} · ${moeda(d.parte)} ${d.igual ? "por pessoa" : "em média por pessoa"}`, "",
-    ...ev.gastos.map(g => { const quem = consumiu(ev, g);
-      return `- ${g.descricao}${g.quantidade === 1 ? "" : ` (${g.quantidade.toLocaleString("pt-BR")}x)`}: ${moeda(g.valor)} (${ev.pessoas.find(p => p.id === g.pago_por)?.nome})${quem.length ? ` · consumo: ${quem.join(", ")}` : ""}`; }),
-    ...(d.igual ? [] : ["", ...d.saldos.map(s => `${s.nome}: ${moeda(s.parte)}`)]), "",
+  await navigator.clipboard.writeText([`${ev.nome} (${dataBr(ev.data)})`, `Total: ${moeda(d.total)} · ${moeda(d.parte)} ${d.igual ? "por pessoa" : "por peso 1"}`, "",
+    ...ev.gastos.map(g => `- ${g.descricao}${g.quantidade === 1 ? "" : ` (${g.quantidade.toLocaleString("pt-BR")}x)`}: ${moeda(g.valor)} (${ev.pessoas.find(p => p.id === g.pago_por)?.nome})`), "",
+    ...(d.igual ? [] : [...d.saldos.map(s => `${s.nome}: ${moeda(s.parte)}`), ""]),
     ...(d.acertos.length ? d.acertos.map(a => `${a.de} paga ${moeda(a.valor)} para ${a.para}`) : ["Ninguém deve nada."])].join("\n"));
   status("Resumo copiado.");
 }));
@@ -1098,6 +1095,13 @@ $("linhasEventoGastos").addEventListener("click", tentar(async e => {
   if (!apagar || !confirm("Excluir este gasto?")) return;
   await api("DELETE", `/api/eventos/gastos?id=${apagar}`);
   status("Gasto excluído.");
+  await carregarEventos();
+}));
+$("linhasEventoPessoas").addEventListener("change", tentar(async e => {
+  const i = e.target.closest("[data-peso]");
+  if (!i) return;
+  await json("POST", "/api/eventos/peso", { evento_id: eventoAtual().id, id: +i.dataset.peso, peso: +i.value });
+  status("Peso salvo.");
   await carregarEventos();
 }));
 $("linhasEventoPessoas").addEventListener("click", tentar(async e => {
@@ -1174,8 +1178,7 @@ $("dlgEvento").addEventListener("close", tentar(async () => {
 $("dlgEventoGasto").addEventListener("close", tentar(async () => {
   if ($("dlgEventoGasto").returnValue !== "ok") return;
   const f = $("formEventoGasto");
-  const consumo = Object.fromEntries([...$("eventoConsumo").querySelectorAll("input")].filter(i => +i.value > 0).map(i => [i.dataset.pessoa, +i.value]));
-  await json("POST", "/api/eventos/gastos", { ...Object.fromEntries(new FormData(f)), consumo, id: f.dataset.id || null, evento_id: eventoAtual().id });
+  await json("POST", "/api/eventos/gastos", { ...Object.fromEntries(new FormData(f)), id: f.dataset.id || null, evento_id: eventoAtual().id });
   status("Gasto salvo.");
   await carregarEventos();
 }));

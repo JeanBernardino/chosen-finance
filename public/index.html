@@ -264,7 +264,7 @@
         </div>
         <div class="tabela-wrap">
           <table>
-            <thead id="cabEventoPessoas"><tr><th><button class="ordenar" data-ordem="nome">Participante</button></th><th class="num"><button class="ordenar" data-ordem="pagou">Pagou</button></th><th class="num"><button class="ordenar" data-ordem="parte">Parte</button></th><th class="num"><button class="ordenar" data-ordem="acertado">Acertado</button></th><th class="num"><button class="ordenar" data-ordem="saldo">Saldo</button></th></tr></thead>
+            <thead id="cabEventoPessoas"><tr><th><button class="ordenar" data-ordem="nome">Participante</button></th><th class="num" title="Quem tem peso 2 paga o dobro de quem tem 1. Ex.: comeu 2 hambúrgueres">Peso</th><th class="num"><button class="ordenar" data-ordem="pagou">Pagou</button></th><th class="num"><button class="ordenar" data-ordem="parte">Parte</button></th><th class="num"><button class="ordenar" data-ordem="acertado">Acertado</button></th><th class="num"><button class="ordenar" data-ordem="saldo">Saldo</button></th></tr></thead>
             <tbody id="linhasEventoPessoas"></tbody>
           </table>
         </div>
@@ -489,11 +489,6 @@
       <label>Valor unitário (R$)<input type="number" name="unitario" min="0.01" step="any" inputmode="decimal" required></label>
     </div>
     <small>Item que já está no evento com o mesmo pagador soma na quantidade em vez de repetir.</small>
-    <details id="eventoConsumoBloco">
-      <summary>Quem consumiu (opcional)</summary>
-      <small>Ex.: hambúrguer, um comeu 1 e outro 2. Só quem tem quantidade paga este item, na proporção do que consumiu. Tudo vazio divide igual entre todos.</small>
-      <div class="duas" id="eventoConsumo"></div>
-    </details>
     <div class="botoes"><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
   </form>
 </dialog>

@@ -124,6 +124,13 @@ const rotas = {
     if (!await db.ativarEvento(pool, idOuNulo(e.id), e.ativo !== false)) throw Object.assign(new Error("evento não encontrado"), { status: 404 });
     return { ok: true };
   },
+  "POST /api/eventos/peso": async req => {
+    const p = JSON.parse(await corpo(req)), evento_id = idOuNulo(p.evento_id), id = idOuNulo(p.id), peso = Number(p.peso);
+    if (!evento_id || !id) throw invalido("evento e participante são obrigatórios");
+    if (!(peso > 0) || peso >= 1000 || Math.abs(Math.round(peso * 1000) - peso * 1000) > 1e-6) throw invalido("peso deve ser maior que zero (até 3 casas)");
+    if (!await db.pesoPessoa(pool, { evento_id, id, peso })) throw Object.assign(new Error("participante não encontrado"), { status: 404 });
+    return { ok: true };
+  },
   "DELETE /api/eventos": async (req, url) => ({ apagados: await db.apagarEvento(pool, idOuNulo(url.searchParams.get("id"))) }),
   "POST /api/eventos/gastos": async req => {
     const g = JSON.parse(await corpo(req));
@@ -133,11 +140,7 @@ const rotas = {
     if (!descricao || !evento_id || !pago_por) throw invalido("descrição e quem pagou são obrigatórios");
     if (!(quantidade > 0) || quantidade >= 1e7 || Math.abs(Math.round(quantidade * 1000) - quantidade * 1000) > 1e-6) throw invalido("quantidade deve ser maior que zero (até 3 casas)");
     if (!(valor > 0) || valor >= 1e10) throw invalido("valor deve ser maior que zero");
-    // quem consumiu quanto: { id da pessoa: quantidade }; vazio divide igual entre todos
-    const consumo = Object.entries(g.consumo ?? {}).map(([p, q]) => [idOuNulo(p), Number(q)]).filter(([, q]) => q);
-    if (consumo.length > 100 || consumo.some(([p, q]) => !p || !(q > 0) || q >= 1e7 || Math.abs(Math.round(q * 1000) - q * 1000) > 1e-6))
-      throw invalido("consumo: quantidade maior que zero (até 3 casas) por participante");
-    return db.salvarGastoEvento(pool, { id: idOuNulo(g.id), evento_id, descricao, quantidade, valor, pago_por, consumo: consumo.length ? Object.fromEntries(consumo) : null });
+    return db.salvarGastoEvento(pool, { id: idOuNulo(g.id), evento_id, descricao, quantidade, valor, pago_por });
   },
   // só lê: os itens voltam para a tela revisar antes de lançar. Com ?url é o link da NFC-e; sem, o corpo é a foto
   "POST /api/eventos/recibo": async (req, url) => {
