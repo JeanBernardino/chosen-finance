@@ -127,30 +127,34 @@ export function porEstabelecimento(gastos) {
 /**
  * Racha os gastos de um evento pelo `peso` de cada pessoa (padrão 1) e diz quem paga quem:
  * quem tem peso 2 (comeu 2 hambúrgueres) paga o dobro de quem tem 1.
- * Conta em centavos: o centavo que sobra da divisão vai para os primeiros da lista, e os saldos fecham em zero.
+ * Conta em centavos e sempre arredonda para cima: o mesmo peso paga sempre o mesmo valor.
+ * `acrescimo` (%) cobra a mais em cima de tudo; o que passa do gasto (acréscimo e centavos do arredondamento)
+ * fica com o `organizador` (nome do participante; sem ele, o primeiro da lista), e os saldos fecham em zero.
  * Pessoas com o mesmo `grupo` (casal, família) contam uma parte cada, mas acertam juntas, em nome do grupo.
  * `pagamentos` são acertos já feitos ({ de, para, valor } com ids de pessoa): abatem do saldo, e o que falta é recalculado.
  * Acerto guloso: quem mais deve paga a quem mais tem a receber, o que dá no máximo uma transferência a menos que o nº de grupos.
  */
-export function dividir(pessoas, gastos, pagamentos = []) {
+export function dividir(pessoas, gastos, pagamentos = [], { acrescimo = 0, organizador } = {}) {
   const cent = v => Math.round(v * 100), n = pessoas.length;
   const total = gastos.reduce((s, g) => s + cent(g.valor), 0), pesos = pessoas.map(p => p.peso ?? 1), soma = pesos.reduce((s, p) => s + p, 0);
-  const partes = pesos.map(p => Math.floor(total * p / soma));
-  for (let i = 0, sobra = total - partes.reduce((s, x) => s + x, 0); sobra > 0 && i < n; i++) if (pesos[i]) { partes[i]++; sobra--; }
+  // - 1e-6: o erro de ponto flutuante (3519.0000001) não sobe mais um centavo
+  const cima = peso => Math.ceil(total * peso * (1 + acrescimo / 100) / soma - 1e-6), partes = pesos.map(cima);
   const unidades = new Map(), daPessoa = new Map();
   pessoas.forEach((p, i) => {
-    const k = p.grupo ?? `#${p.id}`, u = unidades.get(k) ?? { id: p.id, nome: p.grupo ?? p.nome, pagou: 0, parte: 0, acertado: 0 };
+    const k = p.grupo ?? `#${p.id}`, u = unidades.get(k) ?? { id: p.id, nome: p.grupo ?? p.nome, pagou: 0, parte: 0, acertado: 0, extra: 0 };
     u.pagou += gastos.filter(g => g.pago_por === p.id).reduce((s, g) => s + cent(g.valor), 0);
     u.parte += partes[i];
     unidades.set(k, u);
     daPessoa.set(p.id, u);
   });
+  const org = pessoas.find(p => p.nome === organizador) ?? pessoas[0], cobrado = partes.reduce((s, x) => s + x, 0);
+  if (org) daPessoa.get(org.id).extra = cobrado - total;
   for (const a of pagamentos) {
     const v = cent(a.valor), de = daPessoa.get(a.de), para = daPessoa.get(a.para);
     if (de) de.acertado += v;
     if (para) para.acertado -= v;
   }
-  const saldos = [...unidades.values()].map(u => ({ ...u, saldo: u.pagou - u.parte + u.acertado }));
+  const saldos = [...unidades.values()].map(u => ({ ...u, saldo: u.pagou - u.parte + u.acertado + u.extra }));
   const fila = sinal => saldos.map(s => ({ id: s.id, nome: s.nome, v: s.saldo * sinal })).filter(s => s.v > 0).sort((a, b) => b.v - a.v);
   const deve = fila(-1), recebe = fila(1), acertos = [];
   for (let i = 0, j = 0; i < deve.length && j < recebe.length;) {
@@ -160,8 +164,8 @@ export function dividir(pessoas, gastos, pagamentos = []) {
     if (!(recebe[j].v -= v)) j++;
   }
   return {
-    // parte é a parte de peso 1; `igual` diz se todos têm o mesmo peso
-    total: total / 100, parte: n ? total / soma / 100 : 0, igual: pesos.every(p => p === pesos[0]), acertos,
-    saldos: saldos.map(s => ({ ...s, pagou: s.pagou / 100, parte: s.parte / 100, acertado: s.acertado / 100, saldo: s.saldo / 100 })),
+    // parte é a parte de peso 1; `igual` diz se todos têm o mesmo peso; cobrado é a soma das partes (gasto + acréscimo + arredondamento)
+    total: total / 100, cobrado: cobrado / 100, parte: n ? cima(1) / 100 : 0, igual: pesos.every(p => p === pesos[0]), acertos,
+    saldos: saldos.map(s => ({ ...s, pagou: s.pagou / 100, parte: s.parte / 100, acertado: s.acertado / 100, extra: s.extra / 100, saldo: s.saldo / 100 })),
   };
 }

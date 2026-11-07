@@ -939,6 +939,9 @@ async function carregarEventos(id) {
   eventos = await api("GET", "/api/eventos");
   renderEvento();
 }
+// o organizador é quem recebe o Pix: só vale com chave, como o servidor grava
+const dividirEvento = ev => dividir(ev.pessoas, ev.gastos, ev.pagamentos, { acrescimo: ev.acrescimo, organizador: ev.pix_chave ? ev.pix_nome : null });
+const comAcrescimo = ev => ev.acrescimo ? ` · +${ev.acrescimo.toLocaleString("pt-BR")}%` : "";
 function renderEvento() {
   const ev = eventoAtual();
   $("listaEventos").hidden = !!ev;
@@ -947,13 +950,13 @@ function renderEvento() {
   if (!ev) return gradeEventos(eventos.filter(e => e.ativo || $("eventosInativos").checked).map(e => ({ ...e,
     participantes: e.pessoas.length, total: e.gastos.reduce((s, g) => s + g.valor, 0) })));
   $("nomeEvento").textContent = `${ev.nome} · ${dataBr(ev.data)}${ev.ativo ? "" : " (inativo)"}`;
-  const d = dividir(ev.pessoas, ev.gastos, ev.pagamentos), nome = id => ev.pessoas.find(p => p.id === id)?.nome ?? "";
+  const d = dividirEvento(ev), nome = id => ev.pessoas.find(p => p.id === id)?.nome ?? "";
   const grupo = id => { const p = ev.pessoas.find(p => p.id === id); return p?.grupo ?? p?.nome ?? ""; };
   // QR só nos acertos para quem recebe o Pix do evento (ou o casal dele)
   const paraMim = id => !!ev.pix_chave && ev.pessoas.some(p => (p.grupo ?? p.nome) === grupo(id) && p.nome === ev.pix_nome);
   $("kpisEvento").innerHTML = `
-    <div class="kpi destaque"><span>Gasto total</span><strong>${brl(d.total)}</strong><small>${ev.gastos.length} gastos</small></div>
-    <div class="kpi"><span>${d.igual ? "Por pessoa" : "Por peso 1"}</span><strong>${brl(d.parte)}</strong><small>${ev.pessoas.length} participantes</small></div>`;
+    <div class="kpi destaque"><span>Gasto total</span><strong>${brl(d.total)}</strong><small>${ev.gastos.length} gastos${d.cobrado > d.total ? ` · cobrado ${brl(d.cobrado)}` : ""}</small></div>
+    <div class="kpi"><span>${d.igual ? "Por pessoa" : "Por peso 1"}</span><strong>${brl(d.parte)}</strong><small>${ev.pessoas.length} participantes${comAcrescimo(ev)}</small></div>`;
   $("acertos").textContent = !d.total ? "Lance os gastos para ver a divisão." : d.acertos.length ? "Clique no saldo de quem pagou para marcar." : "Ninguém deve nada: já está acertado.";
   gradeEventoGastos(ev.gastos.map(g => ({ ...g, pagador: nome(g.pago_por), unitario: g.valor / g.quantidade })));
   // devedor: o acerto pendente e o já pago ficam na própria linha, um botão só alterna entre os dois
@@ -1038,6 +1041,7 @@ function abrirEvento(ev = { data: hoje(), pessoas: [{ nome: "Eu" }] }) {
   // casal volta para a mesma linha, como foi digitado
   f.elements.pessoas.value = [...new Set(ev.pessoas.map(p => p.grupo ?? p.nome))].join("\n");
   f.elements.pix_chave.value = ev.pix_chave ?? "";
+  f.elements.acrescimo.value = ev.acrescimo || "";
   recebedores(ev.pix_nome);
   $("dlgEvento").showModal();
 }
@@ -1082,9 +1086,9 @@ $("copiarPix").addEventListener("click", tentar(async () => {
   status("Pix copia e cola copiado.");
 }));
 $("copiarDivisao").addEventListener("click", tentar(async () => {
-  const ev = eventoAtual(), d = dividir(ev.pessoas, ev.gastos, ev.pagamentos);
+  const ev = eventoAtual(), d = dividirEvento(ev);
   // moeda direto: o resumo vai para o grupo com os valores, mesmo com a tela ocultando
-  await navigator.clipboard.writeText([`${ev.nome} (${dataBr(ev.data)})`, `Total: ${moeda(d.total)} · ${moeda(d.parte)} ${d.igual ? "por pessoa" : "por peso 1"}`, "",
+  await navigator.clipboard.writeText([`${ev.nome} (${dataBr(ev.data)})`, `Total: ${moeda(d.total)} · ${moeda(d.parte)} ${d.igual ? "por pessoa" : "por peso 1"}${comAcrescimo(ev)}`, "",
     ...ev.gastos.map(g => `- ${g.descricao}${g.quantidade === 1 ? "" : ` (${g.quantidade.toLocaleString("pt-BR")}x)`}: ${moeda(g.valor)} (${ev.pessoas.find(p => p.id === g.pago_por)?.nome})`), "",
     ...(d.igual ? [] : [...d.saldos.map(s => `${s.nome}: ${moeda(s.parte)}`), ""]),
     ...(d.acertos.length ? d.acertos.map(a => `${a.de} paga ${moeda(a.valor)} para ${a.para}`) : ["Ninguém deve nada."])].join("\n"));
@@ -1092,7 +1096,7 @@ $("copiarDivisao").addEventListener("click", tentar(async () => {
 }));
 // PDF pelo "Salvar como PDF" da impressão do navegador: sem dependência, e o título vira o nome do arquivo
 $("exportarEvento").addEventListener("click", tentar(() => {
-  const ev = eventoAtual(), d = dividir(ev.pessoas, ev.gastos, ev.pagamentos);
+  const ev = eventoAtual(), d = dividirEvento(ev);
   const nome = id => ev.pessoas.find(p => p.id === id)?.nome ?? "";
   const impresso = new Date().toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" });
   const w = window.open("", "_blank");
@@ -1134,7 +1138,7 @@ $("exportarEvento").addEventListener("click", tentar(() => {
 <h1>${esc(ev.nome)}</h1><p class="sub">Evento de ${dataBr(ev.data)} · ${ev.pessoas.length} participantes</p>
 <div class="kpis">
   <div class="kpi destaque"><span>Gasto total</span><strong>${moeda(d.total)}</strong></div>
-  <div class="kpi"><span>${d.igual ? "Por pessoa" : "Por peso 1"}</span><strong>${moeda(d.parte)}</strong></div>
+  <div class="kpi"><span>${d.igual ? "Por pessoa" : "Por peso 1"}${comAcrescimo(ev)}</span><strong>${moeda(d.parte)}</strong></div>
   <div class="kpi"><span>Itens lançados</span><strong>${ev.gastos.length}</strong></div>
 </div>
 <section><h2>O que foi gasto</h2><table>
@@ -1145,6 +1149,7 @@ $("exportarEvento").addEventListener("click", tentar(() => {
 <section><h2>Quanto cabe a cada um</h2><table>
   <thead><tr><th>Participante</th><th class="num">Parte</th><th class="num">Já pagou</th><th class="num">Acertado</th><th class="num">Saldo</th></tr></thead>
   <tbody>${d.saldos.map(s => `<tr><td>${esc(s.nome)}</td><td class="num">${moeda(s.parte)}</td><td class="num">${moeda(s.pagou)}</td><td class="num">${s.acertado ? moeda(s.acertado) : "—"}</td><td class="num">${Math.abs(s.saldo) < 0.005 ? "acertado" : s.saldo > 0 ? `recebe ${moeda(s.saldo)}` : `paga ${moeda(-s.saldo)}`}</td></tr>`).join("")}</tbody>
+  ${d.cobrado > d.total ? `<tfoot><tr><td>Total cobrado${comAcrescimo(ev)}</td><td class="num">${moeda(d.cobrado)}</td><td colspan="3"></td></tr></tfoot>` : ""}
 </table></section>
 <section><h2>Quem paga quem</h2>${d.acertos.length
   ? `<ul class="acertos">${d.acertos.map(a => `<li><span><b>${esc(a.de)}</b> paga para <b>${esc(a.para)}</b>${ev.pix_chave && ev.pessoas.some(p => (p.grupo ?? p.nome) === a.para && p.nome === ev.pix_nome) ? ` · Pix: ${esc(ev.pix_chave)}` : ""}</span><strong>${moeda(a.valor)}</strong></li>`).join("")}</ul>`
@@ -1178,7 +1183,7 @@ $("linhasEventoPessoas").addEventListener("click", tentar(async e => {
   if (pix) return cobrarPix(pix.dataset.nome, +pix.dataset.pix);
   const ev = eventoAtual(), pagar = +e.target.closest("[data-pagar]")?.dataset.pagar, desfazer = +e.target.closest("[data-desfazer]")?.dataset.desfazer;
   if (pagar) {
-    for (const a of dividir(ev.pessoas, ev.gastos, ev.pagamentos).acertos.filter(a => a.de_id === pagar))
+    for (const a of dividirEvento(ev).acertos.filter(a => a.de_id === pagar))
       await json("POST", "/api/eventos/acertos", { evento_id: ev.id, de: a.de_id, para: a.para_id, valor: a.valor });
     status("Marcado como pago.");
   } else if (desfazer) {
@@ -1239,8 +1244,8 @@ $("dlgEvento").addEventListener("close", tentar(async () => {
   const r = $("dlgEvento").returnValue, f = $("formEvento");
   if (r === "apagar") return excluirEvento(eventoAtual());
   if (r !== "ok") return;
-  const { nome, data, pessoas, pix_chave, pix_nome } = Object.fromEntries(new FormData(f));
-  const ev = await json("POST", "/api/eventos", { id: f.dataset.id || null, nome, data, pessoas: pessoas.split("\n"), pix_chave, pix_nome });
+  const { nome, data, pessoas, pix_chave, pix_nome, acrescimo } = Object.fromEntries(new FormData(f));
+  const ev = await json("POST", "/api/eventos", { id: f.dataset.id || null, nome, data, pessoas: pessoas.split("\n"), pix_chave, pix_nome, acrescimo });
   status("Evento salvo.");
   await carregarEventos(ev.id);
 }));

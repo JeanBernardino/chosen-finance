@@ -470,12 +470,14 @@
       <label>Data<input type="date" name="data" required></label>
     </div>
     <label>Participantes, um por linha<textarea name="pessoas" rows="6" required placeholder="Eu&#10;Ana + Beto&#10;Caio"></textarea></label>
-    <small>A divisão é em partes iguais entre todos os participantes. Casal ou família na mesma linha, com "+": cada um conta uma parte, mas a cobrança sai junta, para o grupo.</small>
+    <small>A divisão é em partes iguais entre todos os participantes, sempre arredondada para cima. Casal ou família na mesma linha, com "+": cada um conta uma parte, mas a cobrança sai junta, para o grupo.</small>
     <div class="duas">
       <label>Chave Pix (opcional)<input name="pix_chave" maxlength="77" placeholder="CPF, e-mail, celular ou aleatória"></label>
       <label>Quem recebe o Pix<select name="pix_nome" id="eventoRecebedor"></select></label>
     </div>
     <small>Com a chave, quem deve para esse participante ganha o botão Pix na divisão, com o QR Code no valor certo.</small>
+    <label>Acréscimo (%)<input type="number" name="acrescimo" min="0" max="100" step="0.01" inputmode="decimal" placeholder="0"></label>
+    <small>Cobrado em cima de tudo, pela organização. As partes sempre arredondam para cima; o acréscimo e os centavos que sobram ficam com quem recebe o Pix (sem Pix, com o primeiro participante).</small>
     <div class="botoes"><button class="btn perigo" value="apagar" formnovalidate id="apagarEvento">Excluir</button><button class="btn" value="cancel" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Salvar</button></div>
   </form>
 </dialog>

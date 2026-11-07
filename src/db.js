@@ -87,6 +87,7 @@ export async function migrar(db) {
     end $$;
     alter table evento_pessoa add column if not exists peso numeric(6,3) not null default 1 check (peso > 0);  -- peso 2 paga o dobro de quem tem 1
     alter table evento add column if not exists pix_nome text;   -- participante que recebe o Pix  -- inativo = finalizado, sai da lista padrão       -- casal/família: cada um é uma parte, o acerto sai junto
+    alter table evento add column if not exists acrescimo numeric(5,2) not null default 0 check (acrescimo >= 0 and acrescimo <= 100);  -- % cobrado a mais, fica com quem organiza
     create table if not exists evento_acerto (                           -- acertos da divisão já pagos
       id        serial primary key,
       evento_id int not null references evento on delete cascade,
@@ -243,7 +244,7 @@ export async function adicionarRegra(db, padrao, categoria) {
 
 /** Eventos com participantes e gastos: volume pequeno, vai tudo de uma vez. */
 export const eventos = async db => (await db.query(`
-  select e.id, e.nome, e.data, e.ativo, e.pix_chave, e.pix_nome,
+  select e.id, e.nome, e.data, e.ativo, e.pix_chave, e.pix_nome, e.acrescimo,
          coalesce((select json_agg(json_build_object('id', p.id, 'nome', p.nome, 'grupo', p.grupo, 'peso', p.peso) order by p.id) from evento_pessoa p where p.evento_id = e.id), '[]') as pessoas,
          coalesce((select json_agg(json_build_object('id', a.id, 'de', a.de, 'para', a.para, 'valor', a.valor) order by a.id)
                      from evento_acerto a where a.evento_id = e.id), '[]') as pagamentos,
@@ -252,11 +253,11 @@ export const eventos = async db => (await db.query(`
     from evento e order by e.data desc, e.id desc`)).rows;
 
 /** Participantes pelo nome ({ nome, grupo }): mantém os que continuam, cria os novos e tira os que saíram (se não pagaram nada). */
-export const salvarEvento = (db, { id, nome, data, pessoas, pix_chave, pix_nome }) => emTransacao(db, async c => {
-  const nomes = pessoas.map(p => p.nome), v = [nome, data, pix_chave, pix_nome];
+export const salvarEvento = (db, { id, nome, data, pessoas, pix_chave, pix_nome, acrescimo }) => emTransacao(db, async c => {
+  const nomes = pessoas.map(p => p.nome), v = [nome, data, pix_chave, pix_nome, acrescimo];
   const ev = (await (id
-    ? c.query("update evento set nome = $1, data = $2, pix_chave = $3, pix_nome = $4 where id = $5 returning id", [...v, id])
-    : c.query("insert into evento (nome, data, pix_chave, pix_nome) values ($1, $2, $3, $4) returning id", v))).rows[0];
+    ? c.query("update evento set nome = $1, data = $2, pix_chave = $3, pix_nome = $4, acrescimo = $5 where id = $6 returning id", [...v, id])
+    : c.query("insert into evento (nome, data, pix_chave, pix_nome, acrescimo) values ($1, $2, $3, $4, $5) returning id", v))).rows[0];
   if (!ev) throw Object.assign(new Error("evento não encontrado"), { status: 404 });
   try {
     await c.query("delete from evento_pessoa where evento_id = $1 and nome <> all($2::text[])", [ev.id, nomes]);

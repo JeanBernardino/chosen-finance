@@ -117,7 +117,9 @@ const rotas = {
     if (!pessoas.length || pessoas.length > 100 || pessoas.some(p => p.nome.length > 60)) throw invalido("informe de 1 a 100 participantes, com até 60 letras cada");
     const pix_chave = texto(e.pix_chave) && pix.normalizarChave(texto(e.pix_chave)), pix_nome = pix_chave ? texto(e.pix_nome) : null;
     if (pix_chave && (pix_chave.length > 77 || !pessoas.some(p => p.nome === pix_nome))) throw invalido("com chave Pix, informe quem recebe: um dos participantes (chave até 77 letras)");
-    return db.salvarEvento(pool, { id: idOuNulo(e.id), nome, data: e.data, pessoas, pix_chave, pix_nome });
+    const acrescimo = Number(e.acrescimo || 0);
+    if (!(acrescimo >= 0 && acrescimo <= 100) || Math.abs(Math.round(acrescimo * 100) - acrescimo * 100) > 1e-6) throw invalido("acréscimo deve ser de 0 a 100% (até 2 casas)");
+    return db.salvarEvento(pool, { id: idOuNulo(e.id), nome, data: e.data, pessoas, pix_chave, pix_nome, acrescimo });
   },
   "POST /api/eventos/ativo": async req => {
     const e = JSON.parse(await corpo(req));
