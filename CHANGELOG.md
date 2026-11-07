@@ -3,6 +3,11 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.39.1] - 2026-11-07
+
+### Corrigido
+- O total do evento (na tela, na lista de eventos, no resumo copiado e no PDF) agora já inclui o acréscimo, com o detalhe de quanto é gasto e quanto é acréscimo.
+
 ## [0.39.0] - 2026-11-07
 
 ### Novo
