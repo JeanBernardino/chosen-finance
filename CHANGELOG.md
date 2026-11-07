@@ -3,6 +3,13 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.37.0] - 2026-11-07
+
+### Melhorado
+
+- **Eventos:** a coluna Peso dos participantes agora também ordena pelo cabeçalho; todas as colunas das grids de eventos, gastos e participantes ordenam.
+- **Eventos:** a busca das três grids procura em qualquer coluna (data, valores, situação, quem pagou, quem deve), não só no nome.
+
 
 
 
