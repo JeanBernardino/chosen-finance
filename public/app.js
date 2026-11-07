@@ -966,7 +966,8 @@ function renderEvento() {
 }
 const gradeEventos = grade({
   cab: "cabEventos", corpo: "linhasEventos", busca: "buscaEventos",
-  chaves: { nome: e => e.nome.toLowerCase() }, ordem: { campo: "data", dir: -1 }, texto: e => e.nome,
+  chaves: { nome: e => e.nome.toLowerCase() }, ordem: { campo: "data", dir: -1 },
+  texto: e => `${e.nome} ${dataBr(e.data)} ${e.participantes} ${brl(e.total)} ${e.ativo ? "Ativo" : "Inativo"}`,
   vazio: "Nenhum evento. Crie um em + Novo evento.",
   linha: e => `
     <tr>
@@ -992,7 +993,7 @@ $("linhasEventos").addEventListener("click", tentar(async e => {
 const gradeEventoGastos = grade({
   cab: "cabEventoGastos", corpo: "linhasEventoGastos", busca: "buscaEventoGastos",
   chaves: { descricao: g => g.descricao.toLowerCase(), pagador: g => g.pagador.toLowerCase() },
-  ordem: { campo: "valor", dir: -1 }, texto: g => `${g.descricao} ${g.pagador}`, vazio: "Nenhum gasto lançado.",
+  ordem: { campo: "valor", dir: -1 }, texto: g => `${g.descricao} ${g.pagador} ${g.quantidade.toLocaleString("pt-BR")} ${brl(g.unitario)} ${brl(g.valor)}`, vazio: "Nenhum gasto lançado.",
   linha: g => `
     <tr>
       <td>${esc(g.descricao)}</td>
@@ -1005,7 +1006,8 @@ const gradeEventoGastos = grade({
 });
 const gradeEventoPessoas = grade({
   cab: "cabEventoPessoas", corpo: "linhasEventoPessoas", busca: "buscaEventoPessoas",
-  chaves: { nome: p => p.nome.toLowerCase() }, ordem: { campo: "saldo", dir: 1 }, texto: p => p.nome, vazio: "Nenhum participante.",
+  chaves: { nome: p => p.nome.toLowerCase(), peso: p => p.membros.reduce((s, m) => s + m.peso, 0) }, ordem: { campo: "saldo", dir: 1 },
+  texto: p => `${p.membros.map(m => m.nome).join(" ")} ${p.nome} ${brl(p.pagou)} ${brl(p.parte)} ${p.deve}`, vazio: "Nenhum participante.",
   linha: p => `
     <tr>
       <td>${esc(p.nome)}</td>

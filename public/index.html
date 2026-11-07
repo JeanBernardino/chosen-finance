@@ -224,7 +224,7 @@
       <div class="card-topo">
         <div><h2>Eventos</h2><p class="sub">Clique num evento para ver os gastos e a divisão. Inative quando ele terminar.</p></div>
         <div class="filtros-grid">
-          <input type="search" id="buscaEventos" placeholder="Buscar evento" aria-label="Buscar evento">
+          <input type="search" id="buscaEventos" placeholder="Buscar em qualquer coluna" aria-label="Buscar evento">
           <label class="check"><input type="checkbox" id="eventosInativos"> Mostrar inativos</label>
         </div>
       </div>
@@ -242,7 +242,7 @@
         <div class="card-topo">
           <div><h2>Gastos</h2></div>
           <div class="filtros-grid">
-            <input type="search" id="buscaEventoGastos" placeholder="Buscar gasto ou quem pagou" aria-label="Buscar gasto ou quem pagou">
+            <input type="search" id="buscaEventoGastos" placeholder="Buscar em qualquer coluna" aria-label="Buscar gasto">
             <button class="btn" id="lerEventoRecibo" title="Lança item a item pelo link do QR code da NFC-e ou pela foto do cupom">Ler recibo</button>
             <button class="btn primary" id="novoEventoGasto">+ Gasto</button>
           </div>
@@ -258,13 +258,13 @@
         <div class="card-topo">
           <div><h2>Divisão</h2><p class="sub" id="acertos"></p></div>
           <div class="filtros-grid">
-            <input type="search" id="buscaEventoPessoas" placeholder="Buscar participante" aria-label="Buscar participante">
+            <input type="search" id="buscaEventoPessoas" placeholder="Buscar em qualquer coluna" aria-label="Buscar participante">
             <button class="btn" id="copiarDivisao" title="Copia o resumo para colar no grupo">Copiar resumo</button>
           </div>
         </div>
         <div class="tabela-wrap">
           <table>
-            <thead id="cabEventoPessoas"><tr><th><button class="ordenar" data-ordem="nome">Participante</button></th><th class="num" title="Quem tem peso 2 paga o dobro de quem tem 1. Ex.: comeu 2 hambúrgueres">Peso</th><th class="num"><button class="ordenar" data-ordem="pagou">Pagou</button></th><th class="num"><button class="ordenar" data-ordem="parte">Parte</button></th><th class="num"><button class="ordenar" data-ordem="acertado">Acertado</button></th><th class="num"><button class="ordenar" data-ordem="saldo">Saldo</button></th></tr></thead>
+            <thead id="cabEventoPessoas"><tr><th><button class="ordenar" data-ordem="nome">Participante</button></th><th class="num" title="Quem tem peso 2 paga o dobro de quem tem 1. Ex.: comeu 2 hambúrgueres"><button class="ordenar" data-ordem="peso">Peso</button></th><th class="num"><button class="ordenar" data-ordem="pagou">Pagou</button></th><th class="num"><button class="ordenar" data-ordem="parte">Parte</button></th><th class="num"><button class="ordenar" data-ordem="acertado">Acertado</button></th><th class="num"><button class="ordenar" data-ordem="saldo">Saldo</button></th></tr></thead>
             <tbody id="linhasEventoPessoas"></tbody>
           </table>
         </div>
