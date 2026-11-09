@@ -3,6 +3,14 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.43.0] - 2026-11-09
+
+### Novo
+- **Recolher menu**: o botão no rodapé do menu lateral deixa só os ícones e libera espaço para as telas. Passe o mouse num ícone para ver o nome. A escolha fica salva.
+
+### Melhorado
+- As telas passam a usar toda a largura disponível, sem a faixa vazia nas laterais em monitores largos.
+
 ## [0.42.0] - 2026-11-09
 
 ### Melhorado
