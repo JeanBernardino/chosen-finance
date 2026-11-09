@@ -9,7 +9,10 @@
 <script>try { const t = localStorage.getItem("tema"); if (t) document.documentElement.dataset.theme = t; if (localStorage.getItem("menu") === "recolhido") document.documentElement.dataset.menu = "recolhido"; } catch {}</script>
 
 <aside class="lateral">
-  <a class="marca" href="#painel"><img src="logo.png" width="28" height="27" alt=""><span>Chosen Finance</span></a>
+  <div class="topo-menu">
+    <a class="marca" href="#painel"><img src="logo.png" width="28" height="27" alt=""><span>Chosen Finance</span></a>
+    <button class="menu-btn" id="recolher" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM9 4v16M15 10l-2 2 2 2"/></svg><span>Recolher menu</span></button>
+  </div>
   <nav class="menu" aria-label="Seções">
     <a href="#painel"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4zm10 7h6V11h-6zM4 20h6v-4H4zm10-11h6V4h-6z"/></svg><span>Visão geral</span></a>
     <a href="#comparar"><svg viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3"/></svg><span>Comparar</span></a>
@@ -23,7 +26,6 @@
   <div class="rodape-menu">
     <a class="menu-btn versao" id="versao" href="#novidades" hidden title="Novidades"></a>
     <button class="menu-btn" id="ocultar" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Ocultar valores</span></button>
-    <button class="menu-btn" id="recolher" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM9 4v16M15 10l-2 2 2 2"/></svg><span>Recolher menu</span></button>
     <button class="menu-btn" id="tema" aria-label="Alternar tema"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg><span>Tema escuro</span></button>
   </div>
 </aside>
