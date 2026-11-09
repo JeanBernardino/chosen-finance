@@ -52,7 +52,16 @@ a { color: var(--link); }
 .menu a:focus-visible, .menu-btn:focus-visible { outline: 2px solid var(--accent); }
 .lateral svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
-.conteudo { padding: 8px 32px 48px; max-width: 1280px; width: 100%; margin-inline: auto; }  /* tela larga: sobra dividida dos dois lados, não só à direita */
+/* menu recolhido (só desktop): só ícones; o texto continua no DOM (visualmente oculto) para leitor de tela */
+@media (min-width: 901px) {
+  :root[data-menu="recolhido"] body { grid-template-columns: 64px minmax(0, 1fr); }
+  :root[data-menu="recolhido"] .marca { padding: 0 6px; }
+  :root[data-menu="recolhido"] .lateral span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  :root[data-menu="recolhido"] .versao { display: none; }
+  :root[data-menu="recolhido"] #recolher svg { transform: scaleX(-1); }
+}
+
+.conteudo { padding: 8px 32px 48px; width: 100%; }
 .status { min-height: 1.5em; margin: 0 0 4px; color: var(--muted); font-size: 13px; }
 .status.erro { color: var(--warn); }
 .cabecalho { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
@@ -214,6 +223,7 @@ dialog tfoot td { position: sticky; bottom: 0; background: var(--card); }
   .lateral { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 16px; }
   .menu, .rodape-menu { flex-direction: row; overflow-x: auto; margin: 0; }
   .menu-btn span { display: none; }
+  #recolher { display: none; }
   .conteudo { padding: 8px 16px 40px; }
   .grade, .duas { grid-template-columns: minmax(0, 1fr); }
 }

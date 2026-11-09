@@ -62,7 +62,7 @@ window.addEventListener("hashchange", rota);
 document.querySelector(".menu").addEventListener("click", e => { if (e.target.closest("a")?.hash === location.hash) rota(); });
 
 const escuro = () => (document.documentElement.dataset.theme ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
-const rotuloTema = () => $("tema").querySelector("span").textContent = escuro() ? "Tema claro" : "Tema escuro";
+const rotuloTema = () => $("tema").title = $("tema").querySelector("span").textContent = escuro() ? "Tema claro" : "Tema escuro";
 $("tema").addEventListener("click", () => {
   const t = escuro() ? "light" : "dark";
   document.documentElement.dataset.theme = t;
@@ -71,7 +71,7 @@ $("tema").addEventListener("click", () => {
 });
 rotuloTema();
 
-const rotuloOcultar = () => { $("ocultar").querySelector("span").textContent = privado ? "Mostrar valores" : "Ocultar valores"; $("ocultar").setAttribute("aria-pressed", privado); };
+const rotuloOcultar = () => { $("ocultar").title = $("ocultar").querySelector("span").textContent = privado ? "Mostrar valores" : "Ocultar valores"; $("ocultar").setAttribute("aria-pressed", privado); };
 $("ocultar").addEventListener("click", () => {
   privado = !privado;
   try { localStorage.setItem("ocultar", privado ? "1" : "0"); } catch {}
@@ -79,6 +79,23 @@ $("ocultar").addEventListener("click", () => {
   rota();
 });
 rotuloOcultar();
+
+// menu recolhido: só ícones; o title mostra o nome no hover
+const raiz = document.documentElement;
+for (const a of document.querySelectorAll(".marca, .menu a")) a.title = a.textContent.trim();
+const rotuloRecolher = () => {
+  const r = raiz.dataset.menu === "recolhido";
+  $("recolher").querySelector("span").textContent = r ? "Expandir menu" : "Recolher menu";
+  $("recolher").title = $("recolher").textContent;
+  $("recolher").setAttribute("aria-pressed", r);
+};
+$("recolher").addEventListener("click", () => {
+  const r = raiz.dataset.menu !== "recolhido";
+  if (r) raiz.dataset.menu = "recolhido"; else delete raiz.dataset.menu;
+  try { localStorage.setItem("menu", r ? "recolhido" : ""); } catch {}
+  rotuloRecolher();
+});
+rotuloRecolher();
 
 // ---------- grid padrão: toda tabela nova usa, para ordenar pelo cabeçalho e filtrar ----------
 // Cabeçalho com <button class="ordenar" data-ordem="campo">; `chaves`: campo -> valor de ordenação (sem chave, vale
