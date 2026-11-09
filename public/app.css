@@ -52,7 +52,7 @@ a { color: var(--link); }
 .menu a:focus-visible, .menu-btn:focus-visible { outline: 2px solid var(--accent); }
 .lateral svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
-.conteudo { padding: 8px 32px 48px; max-width: 1280px; width: 100%; }
+.conteudo { padding: 8px 32px 48px; max-width: 1280px; width: 100%; margin-inline: auto; }  /* tela larga: sobra dividida dos dois lados, não só à direita */
 .status { min-height: 1.5em; margin: 0 0 4px; color: var(--muted); font-size: 13px; }
 .status.erro { color: var(--warn); }
 .cabecalho { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
