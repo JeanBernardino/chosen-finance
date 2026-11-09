@@ -3,6 +3,12 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.44.0] - 2026-11-09
+
+### Melhorado
+- O botão de **recolher menu** agora fica ao lado da logo, no topo do menu lateral.
+- Recolher e expandir o menu ganhou uma animação suave. Se o seu sistema pede menos movimento, a troca continua instantânea.
+
 ## [0.43.0] - 2026-11-09
 
 ### Novo
