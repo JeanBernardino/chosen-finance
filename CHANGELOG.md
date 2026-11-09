@@ -3,6 +3,11 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.42.0] - 2026-11-09
+
+### Melhorado
+- Em telas largas, todas as telas ficam centralizadas: o espaço que sobra se divide dos dois lados, em vez de virar uma faixa vazia à direita.
+
 ## [0.41.0] - 2026-11-07
 
 ### Melhorado
