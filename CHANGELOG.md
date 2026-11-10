@@ -3,6 +3,16 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.45.0] - 2026-11-10
+
+### Melhorado
+- Avisos como "Regra salva." agora aparecem num balão no rodapé da tela e somem sozinhos. Erros ficam visíveis por mais tempo e em vermelho.
+- Antes de excluir, zerar ou desfazer algo, o app abre a própria janela de confirmação no lugar do aviso cinza do navegador. O botão já vem focado em **Cancelar**.
+
+### Corrigido
+- O botão do assistente não cobre mais a última linha das tabelas.
+- As buscas da tela **Eventos** não aparecem mais com o texto cortado.
+
 ## [0.44.0] - 2026-11-09
 
 ### Melhorado
