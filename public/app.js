@@ -31,9 +31,24 @@ async function api(metodo, url, corpo) {
 }
 const json = (metodo, url, dados) => api(metodo, url, JSON.stringify(dados));
 
+// status vira toast no rodapé: some sozinho, erro fica mais tempo
+let timerStatus;
 function status(msg, erro = false) {
-  $("status").textContent = msg;
-  $("status").classList.toggle("erro", erro);
+  const s = $("status");
+  s.textContent = msg;
+  s.classList.toggle("erro", erro);
+  clearTimeout(timerStatus);
+  if (msg) timerStatus = setTimeout(() => s.textContent = "", erro ? 8000 : 4000);
+}
+// confirmação no estilo do app, no lugar do confirm() nativo; "Pergunta? detalhe" vira título e texto
+function confirmar(msg) {
+  const d = $("dlgConfirmar"), i = msg.lastIndexOf("?") + 1; // last: regex na pergunta pode ter "?"
+  $("tConfirmar").textContent = i ? msg.slice(0, i) : msg;
+  $("txtConfirmar").textContent = i ? msg.slice(i).trim() : "";
+  $("okConfirmar").textContent = msg.split(" ")[0]; // o botão é o verbo que abre a pergunta: Excluir, Zerar, Desfazer, Limpar
+  d.returnValue = "";
+  d.showModal();
+  return new Promise(ok => d.addEventListener("close", () => ok(d.returnValue === "ok"), { once: true }));
 }
 // erro de qualquer ação vira mensagem na tela
 const tentar = fn => async (...a) => { try { await fn(...a); } catch (err) { status(err.message, true); } };
@@ -596,7 +611,7 @@ $("linhasParcelas").addEventListener("click", e => {
 $("dlgFinanciamento").addEventListener("close", tentar(async () => {
   const r = $("dlgFinanciamento").returnValue, f = $("formFinanciamento");
   if (r === "apagar") {
-    if (!confirm(`Excluir ${f.elements.descricao.value}?`)) return;
+    if (!await confirmar(`Excluir ${f.elements.descricao.value}?`)) return;
     await api("DELETE", `/api/financiamentos?id=${f.dataset.id}`);
     status("Financiamento excluído.");
   } else if (r === "ok") {
@@ -740,8 +755,8 @@ const mostrarChat = abrir => {
 $("abrirChat").addEventListener("click", () => mostrarChat($("chatFlutuante").hidden));
 $("fecharChat").addEventListener("click", () => mostrarChat(false));
 $("chatFlutuante").addEventListener("keydown", e => e.key === "Escape" && mostrarChat(false));
-$("limparChat").addEventListener("click", () => {
-  if (!confirm("Limpar a conversa?")) return;
+$("limparChat").addEventListener("click", async () => {
+  if (!await confirmar("Limpar a conversa?")) return;
   conversa = [];
   $("conversa").querySelectorAll(".msg").forEach(m => m.remove());
   $("sugestoes").hidden = false;
@@ -814,7 +829,7 @@ $("linhasRegras").addEventListener("click", tentar(async e => {
   if (b.dataset.editar) return abrirRegra(r);
   if (b.dataset.passo) await json("POST", "/api/regras/mover", { id: r.id, passo: +b.dataset.passo });
   else {
-    if (!confirm(`Excluir a regra ${r.padrao}?`)) return;
+    if (!await confirmar(`Excluir a regra ${r.padrao}?`)) return;
     await api("DELETE", `/api/regras?id=${r.id}`);
     status("Regra excluída.");
   }
@@ -868,7 +883,7 @@ $("linhasOrcamento").addEventListener("click", tentar(async e => {
   const o = b && limites.find(o => o.categoria === (b.dataset.editar ?? b.dataset.apagar));
   if (!o) return;
   if (b.dataset.editar) return abrirOrcamento(o);
-  if (!confirm(`Excluir o limite de ${o.categoria}?`)) return;
+  if (!await confirmar(`Excluir o limite de ${o.categoria}?`)) return;
   await api("DELETE", `/api/orcamentos?categoria=${encodeURIComponent(o.categoria)}`);
   status("Limite excluído.");
   await carregarRegras();
@@ -932,7 +947,7 @@ $("linhasGastos").addEventListener("click", tentar(async e => {
   const editar = e.target.closest("[data-editar]")?.dataset.editar;
   if (editar) return abrirGasto(gastos.find(g => g.id === +editar));
   const apagar = e.target.closest("[data-apagar]")?.dataset.apagar;
-  if (!apagar || !confirm("Excluir este gasto?")) return;
+  if (!apagar || !await confirmar("Excluir este gasto?")) return;
   await api("DELETE", `/api/gastos?id=${apagar}`);
   status("Gasto excluído.");
   await carregarGastos();
@@ -1076,14 +1091,14 @@ function abrirEventoGasto(g = {}) {
 $("novoEvento").addEventListener("click", () => abrirEvento());
 $("editarEvento").addEventListener("click", () => abrirEvento(eventoAtual()));
 async function excluirEvento(ev) {
-  if (!confirm(`Excluir ${ev.nome} com todos os gastos?`)) return;
+  if (!await confirmar(`Excluir ${ev.nome} com todos os gastos?`)) return;
   await api("DELETE", `/api/eventos?id=${ev.id}`);
   status("Evento excluído.");
   await carregarEventos(null);
 }
 $("zerarEvento").addEventListener("click", tentar(async () => {
   const ev = eventoAtual();
-  if (!confirm(`Zerar ${ev.nome}? Apaga todos os gastos e pagamentos; o evento e os participantes ficam.`)) return;
+  if (!await confirmar(`Zerar ${ev.nome}? Apaga todos os gastos e pagamentos; o evento e os participantes ficam.`)) return;
   await api("DELETE", `/api/eventos/lancamentos?evento_id=${ev.id}`);
   status("Evento zerado.");
   await carregarEventos();
@@ -1209,7 +1224,7 @@ $("linhasEventoGastos").addEventListener("click", tentar(async e => {
   const editar = e.target.closest("[data-editar]")?.dataset.editar;
   if (editar) return abrirEventoGasto(eventoAtual().gastos.find(g => g.id === +editar));
   const apagar = e.target.closest("[data-apagar]")?.dataset.apagar;
-  if (!apagar || !confirm("Excluir este gasto?")) return;
+  if (!apagar || !await confirmar("Excluir este gasto?")) return;
   await api("DELETE", `/api/eventos/gastos?id=${apagar}`);
   status("Gasto excluído.");
   await carregarEventos();
@@ -1230,7 +1245,7 @@ $("linhasEventoPessoas").addEventListener("click", tentar(async e => {
       await json("POST", "/api/eventos/acertos", { evento_id: ev.id, de: a.de_id, para: a.para_id, valor: a.valor });
     status("Marcado como pago.");
   } else if (desfazer) {
-    if (!confirm("Desfazer o pagamento marcado?")) return;
+    if (!await confirmar("Desfazer o pagamento marcado?")) return;
     for (const p of ev.pagamentos.filter(p => p.de === desfazer)) await api("DELETE", `/api/eventos/acertos?id=${p.id}`);
     status("Pagamento desfeito.");
   } else return;
@@ -1360,7 +1375,7 @@ $("formImportar").addEventListener("submit", tentar(async e => {
 }));
 $("linhasImportacoes").addEventListener("click", tentar(async e => {
   const arquivo = e.target.closest("[data-arquivo]")?.dataset.arquivo;
-  if (!arquivo || !confirm(`Excluir todos os lançamentos de ${arquivo}? Dá para importar de novo depois.`)) return;
+  if (!arquivo || !await confirmar(`Excluir todos os lançamentos de ${arquivo}? Dá para importar de novo depois.`)) return;
   const r = await api("DELETE", `/api/importacoes?arquivo=${encodeURIComponent(arquivo)}`);
   status(`${r.apagados} lançamentos excluídos.`);
   await carregarImportacoes();
@@ -1401,7 +1416,7 @@ $("listaCartoes").addEventListener("click", tentar(async e => {
     await json("POST", "/api/cartoes", { ...c, ativo: !c.ativo });
     status(`${c.nome} ${c.ativo ? "desativado" : "ativado"}.`);
   } else {
-    if (!confirm(`Excluir o cartão ${c.nome}?`)) return;
+    if (!await confirmar(`Excluir o cartão ${c.nome}?`)) return;
     await api("DELETE", `/api/cartoes?id=${c.id}`);
     status("Cartão excluído.");
   }

@@ -75,9 +75,14 @@ a { color: var(--link); }
   #recolher svg { transition: transform .25s ease; }
 }
 
-.conteudo { padding: 8px 32px 48px; width: 100%; }
-.status { min-height: 1.5em; margin: 0 0 4px; color: var(--muted); font-size: 13px; }
-.status.erro { color: var(--warn); }
+.conteudo { padding: 32px 32px 104px; width: 100%; }  /* fundo livre para o botão do chat não cobrir a última linha */
+/* toast: some sozinho (app.js status) */
+.status { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 30; margin: 0; max-width: min(560px, calc(100vw - 32px)); padding: 10px 16px;
+  background: var(--card); color: var(--text); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; font-size: 13.5px; box-shadow: 0 8px 24px rgb(0 0 0 / .18); }
+.status:empty { display: none; }
+.status.erro { border-left-color: var(--falta); color: var(--falta); }
+@media (prefers-reduced-motion: no-preference) { .status:not(:empty) { animation: toast .2s ease-out; } }
+@keyframes toast { from { opacity: 0; transform: translate(-50%, 8px); } }
 .cabecalho { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
 .sub { margin: 4px 0 0; color: var(--muted); }
 .filtros { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -238,7 +243,7 @@ dialog tfoot td { position: sticky; bottom: 0; background: var(--card); }
   .menu, .rodape-menu { flex-direction: row; overflow-x: auto; margin: 0; }
   .menu-btn span { display: none; }
   #recolher { display: none; }
-  .conteudo { padding: 8px 16px 40px; }
+  .conteudo { padding: 24px 16px 88px; }
   .grade, .duas { grid-template-columns: minmax(0, 1fr); }
 }
 
@@ -293,3 +298,9 @@ table:not(.simulando) .sim { display: none; }
 tr.cortada td:not(.sim) { color: var(--muted); text-decoration: line-through; }
 #simularAssinaturas[aria-pressed="true"], #simularParcelas[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .pdf-ver { width: 100%; height: min(70vh, 720px); border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+/* confirmação de exclusão: no lugar do confirm() nativo */
+dialog.confirmar { width: min(420px, calc(100vw - 32px)); }
+dialog.confirmar p { margin: 0; }
+dialog.confirmar p:empty { display: none; }
+.btn.perigo-cheio { background: var(--falta); border-color: var(--falta); color: var(--card); }
+.btn.perigo-cheio:hover { filter: brightness(1.08); background: var(--falta); }
