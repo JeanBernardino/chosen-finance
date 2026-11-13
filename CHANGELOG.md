@@ -3,6 +3,13 @@
 Cada versão vira um release no GitHub com estas notas e aparece em **Novidades** dentro do app.
 Formato: `## [X.Y.Z] - AAAA-MM-DD`, seções `### Novo`, `### Melhorado`, `### Corrigido`. Escreva para quem usa, não para quem programa.
 
+## [0.46.0] - 2026-11-13
+
+### Novo
+- **Ver dados de exemplo**, no rodapé do menu: o app passa a mostrar seis meses de faturas, gastos, parcelamentos, financiamentos e eventos fictícios, em todas as telas. Serve para mostrar o app a alguém ou testar sem os seus números. **Voltar aos meus dados** volta para os seus dados quando quiser, e os dois nunca se misturam.
+- O que você fizer no exemplo fica só nele e continua lá na próxima vez. **Recriar exemplo**, na faixa verde do topo, começa de novo do zero.
+- Arquivos salvos na pasta de entrada vão sempre para os seus dados reais, mesmo com o exemplo ligado.
+
 ## [0.45.0] - 2026-11-10
 
 ### Melhorado
