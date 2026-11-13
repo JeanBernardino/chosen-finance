@@ -95,6 +95,25 @@ $("ocultar").addEventListener("click", () => {
 });
 rotuloOcultar();
 
+// dados de exemplo: o servidor troca de banco; recarregar a página busca tudo de novo do banco certo
+let demo = false;
+const rotuloDemo = () => {
+  $("demo").title = $("demo").querySelector("span").textContent = demo ? "Voltar aos meus dados" : "Ver dados de exemplo";
+  $("demo").setAttribute("aria-pressed", demo);
+  $("faixaDemo").hidden = !demo;
+};
+async function trocarDemo(ativo, recriar = false) {
+  status(ativo ? "Preparando os dados de exemplo…" : "Voltando aos seus dados…");
+  try { await json("POST", "/api/demo", { ativo, recriar }); location.reload(); }
+  catch (e) { status(e.message, true); }
+}
+$("demo").addEventListener("click", () => trocarDemo(!demo));
+$("sairDemo").addEventListener("click", () => trocarDemo(false));
+$("recriarDemo").addEventListener("click", async () => {
+  if (await confirmar("Recriar o exemplo? Tudo o que foi feito nos dados de exemplo volta ao original. Seus dados reais não mudam.")) trocarDemo(true, true);
+});
+api("GET", "/api/demo").then(r => { demo = r.ativo; rotuloDemo(); }).catch(() => {});
+
 // menu recolhido: só ícones; o title mostra o nome no hover
 const raiz = document.documentElement;
 for (const a of document.querySelectorAll(".marca, .menu a")) a.title = a.textContent.trim();

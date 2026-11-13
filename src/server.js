@@ -9,6 +9,7 @@ import { cartaoDa, PASTA, vigiar } from "./entrada.js";
 import { contexto, conversar, validarMensagens } from "./assistente.js";
 import { lerFoto, lerNfce, limparItens } from "./recibo.js";
 import * as pix from "./pix.js";
+import { abrirDemo, popularDemo } from "./demo.js";
 
 const PORT = Number(process.env.PORT || 4780);
 const PUBLIC = new URL("../public/", import.meta.url).pathname;
@@ -24,8 +25,11 @@ const releases = () => fs.readFileSync(CHANGELOG, "utf8").split(/^## /m).slice(1
   return m && { versao: m[1], data: m[2] ?? null, notas: resto.join("\n").trim() };
 }).filter(Boolean);
 
-const pool = db.abrir();
-await db.migrar(pool);
+const real = db.abrir();
+await db.migrar(real);
+// modo demonstração: as rotas leem `pool`, que aponta para o banco real ou para o de exemplo (src/demo.js)
+const DEMO_URL = process.env.DEMO_DATABASE_URL || "postgres://localhost/chosen_finance_demo";
+let pool = real, demo = null;
 
 const invalido = msg => Object.assign(new Error(msg), { status: 400 });
 const texto = v => typeof v === "string" && v.trim() ? v.trim() : null;
@@ -44,10 +48,24 @@ async function corpo(req) {
 vigiar(async (nome, buf) => {
   const lidas = await ler(nome, buf);
   if (!lidas.length) throw invalido("nenhum lançamento encontrado no arquivo (layout não reconhecido?)");
-  return { lidas: lidas.length, novas: await db.salvar(pool, lidas, cartaoDa(lidas[0].origem, await db.cartoes(pool))) };
+  // a pasta de entrada recebe arquivos reais: grava sempre no banco real, mesmo no modo demonstração
+  return { lidas: lidas.length, novas: await db.salvar(real, lidas, cartaoDa(lidas[0].origem, await db.cartoes(real))) };
 });
 
 const rotas = {
+  "GET /api/demo": () => ({ ativo: pool !== real }),
+  // liga/desliga o exemplo; o exemplo só é gerado na 1ª vez (ou com recriar), para o que foi feito nele continuar lá
+  "POST /api/demo": async req => {
+    const { ativo, recriar } = JSON.parse(await corpo(req));
+    if (!ativo) { pool = real; return { ativo: false }; }
+    if (!demo) {
+      if (DEMO_URL === (process.env.DATABASE_URL || "postgres://localhost/chosen_finance")) throw invalido("DEMO_DATABASE_URL não pode ser o banco real");
+      demo = await abrirDemo(real, DEMO_URL);
+    }
+    if (recriar || !(await demo.query("select 1 from cartao limit 1")).rowCount) await popularDemo(demo);
+    pool = demo;
+    return { ativo: true };
+  },
   "GET /api/releases": () => ({ versao: versao(), releases: releases() }),
   "GET /api/transacoes": async () => categorizar(await db.transacoes(pool), await db.regras(pool)),
   "POST /api/importar": async (req, url) => {

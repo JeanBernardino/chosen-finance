@@ -25,12 +25,15 @@
   </nav>
   <div class="rodape-menu">
     <a class="menu-btn versao" id="versao" href="#novidades" hidden title="Novidades"></a>
+    <button class="menu-btn" id="demo" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3M7.5 14h9"/></svg><span>Ver dados de exemplo</span></button>
     <button class="menu-btn" id="ocultar" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Ocultar valores</span></button>
     <button class="menu-btn" id="tema" aria-label="Alternar tema"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg><span>Tema escuro</span></button>
   </div>
 </aside>
 
 <div class="conteudo">
+  <p id="faixaDemo" class="faixa-demo" hidden><b>Dados de exemplo.</b> Os valores são fictícios e o que você mudar aqui não toca nos seus dados reais.
+    <button type="button" id="recriarDemo">Recriar exemplo</button> <button type="button" id="sairDemo">Voltar aos meus dados</button></p>
   <p id="status" class="status" role="status" aria-live="polite"></p>
 
   <section data-view="painel">
